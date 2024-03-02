@@ -33,6 +33,9 @@ class _HomePageState extends State<HomePage> {
         'UserEmail': currentUser.email,
         'TimeStamp': Timestamp.now(),
       });
+      setState(() {
+        textController.clear();
+      });
     }
   }
 
@@ -56,7 +59,7 @@ class _HomePageState extends State<HomePage> {
             child: StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
                     .collection('User Posts')
-                    .orderBy('TimeStamp', descending: false)
+                    .orderBy('TimeStamp', descending: true)
                     .snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.hasData) {
@@ -72,7 +75,10 @@ class _HomePageState extends State<HomePage> {
                   } else if (snapshot.hasError) {
                     return Center(child: Text(snapshot.error.toString()));
                   }
-                  return Center(child: CircularProgressIndicator());
+                  return Center(
+                      child: CircularProgressIndicator(
+                    color: themecolor,
+                  ));
                 }),
           ),
 
@@ -119,7 +125,7 @@ class PostMessageField extends StatelessWidget {
       decoration: InputDecoration(
         contentPadding: EdgeInsets.symmetric(vertical: 2, horizontal: 15.w),
         filled: true,
-        fillColor: Colors.white38,
+        fillColor: Colors.white,
         border: OutlineInputBorder(
           borderSide: BorderSide.none,
           borderRadius: BorderRadius.circular(4.r),
