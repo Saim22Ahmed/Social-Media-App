@@ -2,10 +2,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:word_wall/components/myTextFormFields.dart';
+import 'package:word_wall/components/my_drawer.dart';
 import 'package:word_wall/components/post.dart';
 import 'package:word_wall/constants.dart';
+import 'package:word_wall/pages/profile_page.dart';
 
 class HomePage extends StatefulWidget {
   HomePage({super.key});
@@ -20,6 +23,9 @@ class _HomePageState extends State<HomePage> {
   // text controller
   final textController = TextEditingController();
 
+  // scroll controller
+  ScrollController scrollController = ScrollController();
+
   void signOut() {
     FirebaseAuth.instance.signOut();
   }
@@ -32,16 +38,33 @@ class _HomePageState extends State<HomePage> {
         'Message': textController.text,
         'UserEmail': currentUser.email,
         'TimeStamp': Timestamp.now(),
+        'Likes': [],
       });
       setState(() {
+        // clear the text field
         textController.clear();
+        // scroll to the top
+        // scrollController.animateTo(
+        //   scrollController.position.minScrollExtent,
+        //   duration: Duration(seconds: 1),
+        //   curve: Curves.fastOutSlowIn,
+        // );
       });
     }
+  }
+
+  void goToProfilePage() {
+    Get.back();
+    Get.to(() => ProfilePage(), transition: Transition.fade);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: MyDrawer(
+        onProfileTap: goToProfilePage,
+        onSignOut: signOut,
+      ),
       backgroundColor: Colors.grey[300],
       appBar: AppBar(
         backgroundColor: themecolor,
@@ -50,7 +73,6 @@ class _HomePageState extends State<HomePage> {
         title: Text(
           'Word Wall',
         ),
-        actions: [IconButton(onPressed: signOut, icon: Icon(Icons.logout))],
       ),
       body: Center(
         child: Column(children: [
@@ -59,17 +81,22 @@ class _HomePageState extends State<HomePage> {
             child: StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
                     .collection('User Posts')
-                    .orderBy('TimeStamp', descending: true)
+                    .orderBy('TimeStamp', descending: false)
                     .snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.hasData) {
                     return ListView.builder(
+                      physics: BouncingScrollPhysics(),
+                      controller: scrollController,
                       itemCount: snapshot.data!.docs.length,
                       itemBuilder: (context, index) {
                         // get the message
                         final post = snapshot.data!.docs[index];
                         return Post(
-                            message: post['Message'], user: post['UserEmail']);
+                            message: post['Message'],
+                            user: post['UserEmail'],
+                            postId: post.id,
+                            likes: List<String>.from(post['Likes'] ?? []));
                       },
                     );
                   } else if (snapshot.hasError) {
@@ -103,7 +130,7 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-class PostMessageField extends StatelessWidget {
+class PostMessageField extends StatefulWidget {
   const PostMessageField({
     super.key,
     required this.textController,
@@ -112,15 +139,20 @@ class PostMessageField extends StatelessWidget {
   final TextEditingController textController;
 
   @override
+  State<PostMessageField> createState() => _PostMessageFieldState();
+}
+
+class _PostMessageFieldState extends State<PostMessageField> {
+  @override
   Widget build(BuildContext context) {
     return TextField(
       style: TextStyle(
         // height: 1.h,
         fontSize: 16.sp,
       ),
-      controller: textController,
+      controller: widget.textController,
       onTapOutside: (event) {
-        FocusScope.of(context).unfocus();
+        FocusManager.instance.primaryFocus!.unfocus();
       },
       decoration: InputDecoration(
         contentPadding: EdgeInsets.symmetric(vertical: 2, horizontal: 15.w),
