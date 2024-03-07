@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -9,6 +11,7 @@ import 'package:word_wall/components/myTextFormFields.dart';
 import 'package:word_wall/components/my_drawer.dart';
 import 'package:word_wall/components/post.dart';
 import 'package:word_wall/constants.dart';
+import 'package:word_wall/helper/helper_methods.dart';
 import 'package:word_wall/pages/profile_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -41,15 +44,12 @@ class _HomePageState extends State<HomePage> {
         'TimeStamp': Timestamp.now(),
         'Likes': [],
       });
+
+      // clear the textfield
       setState(() {
-        // clear the text field
         textController.clear();
-        // scroll to the top
-        // scrollController.animateTo(
-        //   scrollController.position.minScrollExtent,
-        //   duration: Duration(seconds: 1),
-        //   curve: Curves.fastOutSlowIn,
-        // );
+
+        // scroll to top minscrollextent
       });
     }
   }
@@ -59,6 +59,17 @@ class _HomePageState extends State<HomePage> {
     Get.to(() => ProfilePage(), transition: Transition.rightToLeftWithFade);
   }
 
+  void ScrollToTop() {
+    return WidgetsBinding.instance?.addPostFrameCallback((timeStamp) {
+      // Scroll to the bottom of the list after new data is loaded
+      scrollController.animateTo(
+        scrollController.position.maxScrollExtent,
+        duration: Duration(milliseconds: 100),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -66,10 +77,10 @@ class _HomePageState extends State<HomePage> {
         onProfileTap: goToProfilePage,
         onSignOut: signOut,
       ),
-      backgroundColor: Colors.grey[300],
+      backgroundColor: Theme.of(context).colorScheme.background,
       appBar: AppBar(
-        backgroundColor: themecolor,
-        foregroundColor: Colors.white,
+        scrolledUnderElevation: 0,
+        elevation: 0,
         centerTitle: true,
         title: Text(
           'Word Wall',
@@ -87,17 +98,20 @@ class _HomePageState extends State<HomePage> {
                 builder: (context, snapshot) {
                   if (snapshot.hasData) {
                     return ListView.builder(
-                      physics: BouncingScrollPhysics(),
                       controller: scrollController,
+                      physics: BouncingScrollPhysics(),
                       itemCount: snapshot.data!.docs.length,
                       itemBuilder: (context, index) {
                         // get the message
                         final post = snapshot.data!.docs[index];
                         return Post(
-                            message: post['Message'],
-                            user: post['UserEmail'],
-                            postId: post.id,
-                            likes: List<String>.from(post['Likes'] ?? []));
+                          message: post['Message'],
+                          user: post['UserEmail'],
+                          postId: post.id,
+                          likes: List<String>.from(post['Likes'] ?? []),
+                          time: FormatedDate(post['TimeStamp']),
+                          commentsCount: post['Comments'].length,
+                        );
                       },
                     );
                   } else if (snapshot.hasError) {
@@ -105,7 +119,7 @@ class _HomePageState extends State<HomePage> {
                   }
                   return Center(
                       child: CircularProgressIndicator(
-                    color: themecolor,
+                    color: Theme.of(context).colorScheme.primary,
                   ));
                 }),
           ),
@@ -116,9 +130,19 @@ class _HomePageState extends State<HomePage> {
             child: Row(
               children: [
                 Expanded(
-                  child: PostMessageField(textController: textController),
+                  child: PostMessageField(
+                    textController: textController,
+                    onTap: () {},
+                  ),
                 ),
-                IconButton(onPressed: postmessage, icon: Icon(Icons.send))
+                IconButton(
+                    onPressed: () {
+                      postmessage();
+                    },
+                    icon: Icon(
+                      Icons.send,
+                      color: Colors.white,
+                    ))
               ],
             ),
           ),
@@ -129,7 +153,7 @@ class _HomePageState extends State<HomePage> {
               padding: EdgeInsets.all(10.sp),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(8.r),
-                color: themecolor,
+                color: Theme.of(context).colorScheme.tertiary,
               ),
               child: Text('Logged in as ' + currentUser.email!,
                   style: TextStyle(color: Colors.white)),
@@ -142,12 +166,14 @@ class _HomePageState extends State<HomePage> {
 }
 
 class PostMessageField extends StatefulWidget {
-  const PostMessageField({
+  PostMessageField({
     super.key,
     required this.textController,
+    required this.onTap,
   });
 
   final TextEditingController textController;
+  final void Function()? onTap;
 
   @override
   State<PostMessageField> createState() => _PostMessageFieldState();
@@ -157,6 +183,8 @@ class _PostMessageFieldState extends State<PostMessageField> {
   @override
   Widget build(BuildContext context) {
     return TextField(
+      cursorColor: Theme.of(context).colorScheme.onTertiary,
+      onTap: widget.onTap,
       style: TextStyle(
         // height: 1.h,
         fontSize: 16.sp,
@@ -168,14 +196,19 @@ class _PostMessageFieldState extends State<PostMessageField> {
       decoration: InputDecoration(
         contentPadding: EdgeInsets.symmetric(vertical: 2, horizontal: 15.w),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: Theme.of(context).colorScheme.primary,
         border: OutlineInputBorder(
           borderSide: BorderSide.none,
           borderRadius: BorderRadius.circular(4.r),
         ),
+        enabledBorder: OutlineInputBorder(
+            borderSide: BorderSide(
+          color: Theme.of(context).colorScheme.secondary,
+          width: 1.w,
+        )),
         focusedBorder: OutlineInputBorder(
           borderSide: BorderSide(
-            color: themecolor,
+            color: Theme.of(context).colorScheme.onTertiary,
             width: 1.w,
           ),
           borderRadius: BorderRadius.circular(4.r),

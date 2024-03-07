@@ -8,6 +8,8 @@ import 'package:word_wall/auth/login_or_register.dart';
 import 'package:word_wall/firebase_options.dart';
 import 'package:word_wall/pages/login_page.dart';
 import 'package:word_wall/pages/register_page.dart';
+import 'package:word_wall/theme/dark_theme.dart';
+import 'package:word_wall/theme/light_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,10 +29,8 @@ class MyApp extends StatelessWidget {
         return GetMaterialApp(
           debugShowCheckedModeBanner: false,
           title: 'Flutter Demo',
-          theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-            useMaterial3: true,
-          ),
+          theme: lightTheme,
+          darkTheme: darkTheme,
           home: AuthPage(),
         );
       },

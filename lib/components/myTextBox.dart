@@ -19,7 +19,7 @@ class MyTextBox extends StatelessWidget {
       margin: EdgeInsets.only(top: 20.w, left: 20.w, right: 20.w),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8.r),
-        color: Colors.grey[200],
+        color: Theme.of(context).colorScheme.primary,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

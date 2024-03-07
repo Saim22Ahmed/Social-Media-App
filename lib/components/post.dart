@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -7,6 +8,7 @@ import 'package:get/get.dart';
 import 'package:icons_plus/icons_plus.dart';
 import 'package:word_wall/components/comment.dart';
 import 'package:word_wall/components/comment_button.dart';
+import 'package:word_wall/components/delete_button.dart';
 import 'package:word_wall/components/like_button.dart';
 import 'package:word_wall/constants.dart';
 import 'package:word_wall/helper/helper_methods.dart';
@@ -18,12 +20,16 @@ class Post extends StatefulWidget {
     required this.user,
     required this.postId,
     required this.likes,
+    required this.time,
+    this.commentsCount,
   });
 
   final String message;
   final String user;
   final String postId;
+  final String time;
   final List<String> likes;
+  final dynamic commentsCount;
 
   @override
   State<Post> createState() => _PostState();
@@ -91,16 +97,15 @@ class _PostState extends State<Post> {
         context: context,
         builder: (context) {
           return AlertDialog(
-            backgroundColor: Colors.white,
+            backgroundColor: Theme.of(context).colorScheme.primary,
             title: Text('Add Comment'),
             content: TextField(
               cursorColor: Colors.grey[500],
               controller: commentTextController,
-              style: TextStyle(color: Colors.black),
               decoration: InputDecoration(
                 border: InputBorder.none,
                 hintText: 'Write a comment..',
-                hintStyle: TextStyle(color: Colors.grey[600]),
+                hintStyle: TextStyle(color: Colors.grey[300]),
               ),
               autofocus: true,
             ),
@@ -111,14 +116,16 @@ class _PostState extends State<Post> {
               // cancel button
 
               TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    commentTextController.clear();
-                  },
-                  child: Text(
-                    'CANCEL',
-                    style: TextStyle(color: themecolor),
-                  )),
+                onPressed: () {
+                  Navigator.pop(context);
+                  commentTextController.clear();
+                },
+                child: Text(
+                  'CANCEL',
+                  style: TextStyle(
+                      color: Theme.of(context).colorScheme.onTertiary),
+                ),
+              ),
 
               // post button
 
@@ -135,9 +142,77 @@ class _PostState extends State<Post> {
                     Navigator.pop(context);
                     commentTextController.clear();
                   },
-                  child: Text('POST', style: TextStyle(color: themecolor))),
+                  child: Text('POST',
+                      style: TextStyle(
+                          color: Theme.of(context).colorScheme.onTertiary))),
             ],
           );
+        });
+  }
+
+  // delete post
+  void deletePost() {
+    showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+              shape: RoundedRectangleBorder(),
+              title: Text('Delete Post'),
+              content: Text('Are you sure you want to delete this post?'),
+              actions: [
+                //Cancel button
+                TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(
+                          color: Theme.of(context).colorScheme.onTertiary),
+                    )),
+
+                //Delete button
+                TextButton(
+                    onPressed: () async {
+                      // delete comment first from firestore
+
+                      final commentDocs = await FirebaseFirestore.instance
+                          .collection('User Posts')
+                          .doc(widget.postId)
+                          .collection('Comments')
+                          .get();
+
+                      for (var doc in commentDocs.docs) {
+                        doc.reference.delete();
+                      }
+
+                      // delete the post
+
+                      await FirebaseFirestore.instance
+                          .collection('User Posts')
+                          .doc(widget.postId)
+                          .delete()
+                          .then((value) => ScaffoldMessenger.of(context)
+                                  .showSnackBar(SnackBar(
+                                duration: 900.ms,
+                                backgroundColor:
+                                    Theme.of(context).colorScheme.onTertiary,
+                                dismissDirection: DismissDirection.horizontal,
+                                behavior: SnackBarBehavior.floating,
+                                margin: EdgeInsets.symmetric(
+                                    horizontal: 15.w, vertical: 15.h),
+                                content: Text('Post Deleted'),
+                              )))
+                          .catchError(
+                              (error) => print("Failed to delete: $error"));
+
+                      // pop the dialog box
+                      Navigator.pop(context);
+                    },
+                    child: Text('Delete',
+                        style: TextStyle(
+                            color: Theme.of(context).colorScheme.onTertiary))),
+              ]);
         });
   }
 
@@ -145,105 +220,158 @@ class _PostState extends State<Post> {
   Widget build(BuildContext context) {
     return Container(
       margin: EdgeInsets.only(top: 25.h, left: 25.w, right: 25.w),
-      padding: EdgeInsets.all(26.w),
+      padding: EdgeInsets.all(25.w),
       decoration: BoxDecoration(
-        // border: Border.all(width: 0.5, color: themecolor),
-        // boxShadow: [
-        //   BoxShadow(
-        //       color: Colors.deepOrange.shade200,
-        //       blurRadius: 2,
-        //       spreadRadius: 0,
-        //       offset: Offset(2, 2))
-        // ],
         borderRadius: BorderRadius.circular(8.r),
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.primary,
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         // post
 
-        // message
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // message and user
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // message
 
-        Text(widget.message),
-        5.h.verticalSpace,
+                Text(widget.message),
+                5.h.verticalSpace,
 
-        // user
+                // user
 
-        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(
-            widget.user,
-            style: TextStyle(color: Colors.grey[500]),
-          ),
-
-          //
-
-          20.h.verticalSpace,
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              // Like Button
-
-              Column(
-                children: [
-                  LikeButton(
-                    isLiked: isLiked,
-                    onTap: toggleLike,
+                Row(children: [
+                  Text(
+                    widget.user,
+                    style: TextStyle(color: Colors.grey[500]),
                   ),
-                  5.h.verticalSpace,
 
-                  // likes count
+                  10.h.horizontalSpace,
 
-                  Text(widget.likes.length.toString())
-                ],
-              ),
+                  // time
 
-              // Comment Button
+                  Text(
+                    widget.time,
+                    style: TextStyle(color: Colors.grey[500]),
+                  )
+                ]),
+              ],
+            ),
 
-              Column(
-                children: [
-                  CommentButton(
-                    onTap: displayCommentDialog,
-                  ),
-                  5.h.verticalSpace,
+            // delelte button
+            if (widget.user == currentUser.email)
+              DeleteButton(onTap: deletePost),
+          ],
+        ),
+        //
 
-                  // comment Count
-                  Text('0')
-                ],
-              ),
-            ],
-          ),
+        22.h.verticalSpace,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            // Like Button
 
-          10.h.verticalSpace,
+            Column(
+              children: [
+                LikeButton(
+                  isLiked: isLiked,
+                  onTap: toggleLike,
+                ),
+                5.h.verticalSpace,
 
-          // comments under the post
+                // likes count
 
-          StreamBuilder(
-              stream: FirebaseFirestore.instance
-                  .collection('User Posts')
-                  .doc(widget.postId)
-                  .collection('Comments')
-                  .orderBy('time', descending: true)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return Center(
-                      child: CircularProgressIndicator(color: themecolor));
-                } else {
-                  return ListView(
-                      physics: NeverScrollableScrollPhysics(),
-                      shrinkWrap: true,
-                      children: snapshot.data!.docs.map((doc) {
-                        return Comment(
-                          comment: doc['Comment'],
-                          user: doc['By'],
-                          time: FormatedTime(
-                            doc['time'],
-                          ),
-                          date: FormatedDate(doc['time']),
-                        );
-                      }).toList());
-                }
-              })
-        ])
+                Text(widget.likes.length.toString())
+              ],
+            ),
+
+            // Comment Button
+
+            Column(
+              children: [
+                CommentButton(
+                  onTap: displayCommentDialog,
+                ),
+                5.h.verticalSpace,
+
+                // comment Count
+                Text(widget.commentsCount.toString())
+              ],
+            ),
+          ],
+        ),
+
+        20.h.verticalSpace,
+
+        // comments under the post
+
+        // StreamBuilder(
+        //     stream: FirebaseFirestore.instance
+        //         .collection('User Posts')
+        //         .doc(widget.postId)
+        //         .collection('Comments')
+        //         .orderBy('time', descending: true)
+        //         .snapshots(),
+        //     builder: (context, snapshot) {
+        //       if (!snapshot.hasData) {
+        //         return Center(
+        //             child: CircularProgressIndicator(
+        //                 color: Theme.of(context).colorScheme.primary));
+        //       } else {
+        //         return ListView(
+        //             shrinkWrap: true,
+        //             physics: const NeverScrollableScrollPhysics(),
+        //             children: snapshot.data!.docs.map((doc) {
+        //               final commentData = doc.data() as Map<String, dynamic>;
+        //               return Comment(
+        //                 comment: commentData['Comment'],
+        //                 user: commentData['By'],
+        //                 time: FormatedTime(
+        //                   commentData['time'],
+        //                 ),
+        //                 date: FormatedDate(commentData['time']),
+        //               );
+        //             }).toList());
+        //       }
+        //     })
+        StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('User Posts')
+                .doc(widget.postId)
+                .collection('Comments')
+                .orderBy('time', descending: true)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.hasData) {
+                return ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: snapshot.data!.docs.length,
+                    itemBuilder: (context, index) {
+                      final commentData = snapshot.data!.docs[index];
+                      return Comment(
+                        comment: commentData['Comment'],
+                        user: commentData['By'],
+                        time: FormatedTime(
+                          commentData['time'],
+                        ),
+                        date: FormatedDate(commentData['time']),
+                      );
+                    });
+              } else if (snapshot.hasError) {
+                return Center(
+                    child: Text(
+                  snapshot.error.toString(),
+                ));
+              }
+
+              return Center(
+                child: Container(),
+              );
+            })
       ]),
     );
   }
