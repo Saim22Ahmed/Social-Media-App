@@ -15,6 +15,8 @@ class MyTextFormField extends StatelessWidget {
     this.keyboardType,
     this.onTap,
     this.readOnly = false,
+    this.validator,
+    this.autovalidateMode,
   });
   final String hintText;
   final Icon? prefixIcon;
@@ -27,12 +29,16 @@ class MyTextFormField extends StatelessWidget {
   final void Function(String)? onChanged;
   final Function()? onTap;
   final bool readOnly;
+  final String? Function(String?)? validator;
+  final AutovalidateMode? autovalidateMode;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       height: 50.h,
       child: TextFormField(
+        autovalidateMode: autovalidateMode,
+        validator: validator,
         obscureText: obscuretext,
         readOnly: readOnly,
         onTap: onTap,
@@ -44,11 +50,7 @@ class MyTextFormField extends StatelessWidget {
         },
         textAlign: TextAlign.start,
         textAlignVertical: TextAlignVertical.center,
-        // onTap: () {},
-        // onFieldSubmitted: (value) => FocusScope.of(context)
-        //     .requestFocus(fieldcontroller.emailfocus.value),
-        // controller: loginController.email,
-        // focusNode: fieldcontroller.namefocus.value,
+
         textInputAction: TextInputAction.next,
         // autofocus: true,
         maxLines: maxlines,

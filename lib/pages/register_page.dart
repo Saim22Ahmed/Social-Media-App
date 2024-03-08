@@ -21,11 +21,14 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
+  final username_controller = TextEditingController();
   final email_controller = TextEditingController();
   final password_controller = TextEditingController();
   final confirm_password_controller = TextEditingController();
 
   void signUp(context) async {
+    // if text field is not empty
+
     // show loading circle
     showDialog(
         context: context,
@@ -37,9 +40,37 @@ class _RegisterPageState extends State<RegisterPage> {
           );
         });
 
+    // check if password matches
     if (password_controller.text != confirm_password_controller.text) {
       Navigator.pop(context);
       displayMessage('Password do not Match', context);
+      return;
+    }
+
+    // check if username is not empty
+    if (username_controller.text.isEmpty) {
+      Navigator.pop(context);
+      displayMessage('Please enter your username', context);
+      return;
+    }
+
+    // username should be less than 15 characters
+    if (username_controller.text.length > 15) {
+      Navigator.pop(context);
+      displayMessage('Username should be less than 15 characters', context);
+      return;
+    }
+
+    // Check if username already exists
+    QuerySnapshot usernameSnapshot = await FirebaseFirestore.instance
+        .collection('Users')
+        .where('username', isEqualTo: username_controller.text)
+        .get();
+
+    if (usernameSnapshot.docs.isNotEmpty) {
+      Navigator.pop(context);
+      displayMessage(
+          'Username already exists. Please choose another one.', context);
       return;
     }
 
@@ -55,9 +86,9 @@ class _RegisterPageState extends State<RegisterPage> {
           .collection('Users')
           .doc(userCredential.user!.email)
           .set({
-        'username': email_controller.text
-            .split('@')[0], //inital username (saim@gmail.com = saim)
-        'bio': 'Empty bio...',
+        'username': username_controller.text,
+        //inital username (saim@gmail.com = saim)
+        'bio': 'Write your bio...',
       });
       //pop loading circle
       if (context.mounted) {
@@ -75,86 +106,100 @@ class _RegisterPageState extends State<RegisterPage> {
       dismissDirection: DismissDirection.horizontal,
       behavior: SnackBarBehavior.floating,
       margin: EdgeInsets.symmetric(horizontal: 15.w, vertical: 15.h),
-      content: Text(message.toString()),
+      content: Text(
+        message.toString(),
+        style: TextStyle(color: Colors.white),
+      ),
     ));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        backgroundColor: Colors.grey[300],
-        body: SafeArea(
-          child: Center(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 25.0),
-              child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Icon
-                    Icon(
-                      Icons.lock,
-                      size: 100,
-                      color: themecolor,
-                    ),
-                    25.h.verticalSpace,
-                    // welcome Text
-                    Text(
-                      "Let's Create an Account",
-                      style: TextStyle(color: Colors.grey[700]),
-                    ),
+        backgroundColor: Theme.of(context).colorScheme.background,
+        body: Center(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 25.0),
+            child:
+                Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+              // Icon
+              Icon(
+                Icons.lock,
+                size: 100,
+                color: Color(0xff00B4D8),
+              ),
+              25.h.verticalSpace,
+              // welcome Text
+              Text(
+                "Let's Create an Account",
+                // style: TextStyle(color: Colors.grey[700]),
+              ),
 
-                    SizedBox(
-                      height: 25.h,
-                    ),
-                    // Email Field
+              SizedBox(
+                height: 25.h,
+              ),
 
-                    MyTextFormField(
-                      controller: email_controller,
-                      hintText: 'Email',
-                      obscuretext: false,
-                    ),
-                    16.h.verticalSpace,
-                    // Password Field
-                    MyTextFormField(
-                      controller: password_controller,
-                      hintText: 'Password',
-                      obscuretext: false,
-                    ),
-                    16.h.verticalSpace,
-                    MyTextFormField(
-                      controller: confirm_password_controller,
-                      hintText: 'Confirm Password',
-                      obscuretext: false,
-                    ),
+              // Username Field
+              16.h.verticalSpace,
+              MyTextFormField(
+                controller: username_controller,
+                hintText: 'Username',
+                obscuretext: false,
+              ),
+              // Email Field
+              16.h.verticalSpace,
 
-                    16.h.verticalSpace,
+              MyTextFormField(
+                keyboardType: TextInputType.emailAddress,
+                controller: email_controller,
+                hintText: 'Email',
+                obscuretext: false,
+              ),
+              16.h.verticalSpace,
+              // Password Field
+              MyTextFormField(
+                controller: password_controller,
+                hintText: 'Password',
+                obscuretext: false,
+              ),
 
-                    // button
-                    MyButton(
-                      onTap: () => signUp(context),
-                      title: 'Sign up',
+              // Confirm Password Field
+              16.h.verticalSpace,
+              MyTextFormField(
+                controller: confirm_password_controller,
+                hintText: 'Confirm Password',
+                obscuretext: false,
+              ),
+
+              16.h.verticalSpace,
+
+              // button
+              MyButton(
+                onTap: () {
+                  signUp(context);
+                },
+                title: 'Sign up',
+              ),
+              25.h.verticalSpace,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Already have an account ? ',
+                    style: TextStyle(color: Colors.grey[700]),
+                  ),
+                  GestureDetector(
+                    onTap: widget.onTap,
+                    child: Text(
+                      'Login now ',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    25.h.verticalSpace,
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Already have an account ? ',
-                          style: TextStyle(color: Colors.grey[700]),
-                        ),
-                        GestureDetector(
-                          onTap: widget.onTap,
-                          child: Text(
-                            'Login now ',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    )
-                  ]),
-            ),
+                  ),
+                ],
+              )
+            ]),
           ),
         ));
   }

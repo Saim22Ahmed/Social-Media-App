@@ -21,15 +21,15 @@ class Post extends StatefulWidget {
     required this.postId,
     required this.likes,
     required this.time,
-    this.commentsCount,
+    required this.userEmail,
   });
 
   final String message;
   final String user;
+  final String userEmail;
   final String postId;
   final String time;
   final List<String> likes;
-  final dynamic commentsCount;
 
   @override
   State<Post> createState() => _PostState();
@@ -76,8 +76,19 @@ class _PostState extends State<Post> {
 
   // add a comment
 
-  void addComment(String comment) {
+  void addComment(String comment) async {
     // write comment to firestore under the comments collection inside the user posts
+
+    // fetching the username
+    // Fetch the current user's data from the Users collection
+    DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
+        .collection('Users')
+        .doc(currentUser.email)
+        .get();
+
+    final username = userSnapshot['username'];
+
+    // add comment to firebase
 
     FirebaseFirestore.instance
         .collection('User Posts')
@@ -85,8 +96,9 @@ class _PostState extends State<Post> {
         .collection('Comments')
         .add({
       'Comment': comment,
-      'By': currentUser.email,
-      'time': Timestamp.now()
+      'By': username,
+      'time': Timestamp.now(),
+      'UserEmail': currentUser.email
     });
   }
 
@@ -176,6 +188,14 @@ class _PostState extends State<Post> {
                     onPressed: () async {
                       // delete comment first from firestore
 
+                      // show circular progress indicator
+                      showDialog(
+                          context: context,
+                          builder: (context) => Center(
+                                  child: CircularProgressIndicator(
+                                color: Colors.white,
+                              )));
+
                       final commentDocs = await FirebaseFirestore.instance
                           .collection('User Posts')
                           .doc(widget.postId)
@@ -192,18 +212,21 @@ class _PostState extends State<Post> {
                           .collection('User Posts')
                           .doc(widget.postId)
                           .delete()
-                          .then((value) => ScaffoldMessenger.of(context)
-                                  .showSnackBar(SnackBar(
-                                duration: 900.ms,
-                                backgroundColor:
-                                    Theme.of(context).colorScheme.onTertiary,
-                                dismissDirection: DismissDirection.horizontal,
-                                behavior: SnackBarBehavior.floating,
-                                margin: EdgeInsets.symmetric(
-                                    horizontal: 15.w, vertical: 15.h),
-                                content: Text('Post Deleted'),
-                              )))
-                          .catchError(
+                          .then((value) {
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                        }
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                          duration: 900.ms,
+                          backgroundColor:
+                              Theme.of(context).colorScheme.onTertiary,
+                          dismissDirection: DismissDirection.horizontal,
+                          behavior: SnackBarBehavior.floating,
+                          margin: EdgeInsets.symmetric(
+                              horizontal: 15.w, vertical: 15.h),
+                          content: Text('Post Deleted'),
+                        ));
+                      }).catchError(
                               (error) => print("Failed to delete: $error"));
 
                       // pop the dialog box
@@ -214,6 +237,16 @@ class _PostState extends State<Post> {
                             color: Theme.of(context).colorScheme.onTertiary))),
               ]);
         });
+  }
+
+  Future<int> commentsCount() async {
+    final querySnapshot = await FirebaseFirestore.instance
+        .collection('User Posts')
+        .doc(widget.postId)
+        .collection('Comments')
+        .get();
+
+    return querySnapshot.docs.length;
   }
 
   @override
@@ -245,8 +278,11 @@ class _PostState extends State<Post> {
 
                 Row(children: [
                   Text(
-                    widget.user,
-                    style: TextStyle(color: Colors.grey[500]),
+                    widget.user + '.',
+                    style: TextStyle(
+                      color: Color(0xff00B4D8),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
 
                   10.h.horizontalSpace,
@@ -255,14 +291,14 @@ class _PostState extends State<Post> {
 
                   Text(
                     widget.time,
-                    style: TextStyle(color: Colors.grey[500]),
+                    style: TextStyle(color: Colors.grey[500], fontSize: 15.sp),
                   )
                 ]),
               ],
             ),
 
             // delelte button
-            if (widget.user == currentUser.email)
+            if (widget.userEmail == currentUser.email)
               DeleteButton(onTap: deletePost),
           ],
         ),
@@ -298,7 +334,15 @@ class _PostState extends State<Post> {
                 5.h.verticalSpace,
 
                 // comment Count
-                Text(widget.commentsCount.toString())
+                FutureBuilder<int>(
+                  future: commentsCount(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return Text('0');
+                    }
+                    return Text(snapshot.data.toString());
+                  },
+                )
               ],
             ),
           ],
@@ -352,9 +396,11 @@ class _PostState extends State<Post> {
                     itemCount: snapshot.data!.docs.length,
                     itemBuilder: (context, index) {
                       final commentData = snapshot.data!.docs[index];
+                      // final commentscount = snapshot.data!.docs.length;
                       return Comment(
                         comment: commentData['Comment'],
                         user: commentData['By'],
+                        userEmail: commentData['UserEmail'],
                         time: FormatedTime(
                           commentData['time'],
                         ),

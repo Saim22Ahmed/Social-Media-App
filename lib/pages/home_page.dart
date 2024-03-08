@@ -34,23 +34,44 @@ class _HomePageState extends State<HomePage> {
     FirebaseAuth.instance.signOut();
   }
 
-  void postmessage() {
+  void postmessage() async {
     // if text field is not empty
     if (textController.text.isNotEmpty) {
+      // show loading circle
+      showDialog(
+          context: context,
+          builder: (context) {
+            return Center(
+              child: CircularProgressIndicator(
+                color: Colors.white,
+              ),
+            );
+          });
+
+      // fetching user name
+      final userData = await FirebaseFirestore.instance
+          .collection('Users')
+          .doc(currentUser.email)
+          .get();
+
+      final username = userData.data()!['username'];
+
       // add post in firestore
       FirebaseFirestore.instance.collection('User Posts').add({
         'Message': textController.text,
         'UserEmail': currentUser.email,
         'TimeStamp': Timestamp.now(),
+        'username': username,
         'Likes': [],
       });
 
-      // clear the textfield
-      setState(() {
-        textController.clear();
+      // pop loading circle
 
-        // scroll to top minscrollextent
-      });
+      Navigator.pop(context);
+
+      // clear the textfield
+
+      textController.clear();
     }
   }
 
@@ -90,38 +111,44 @@ class _HomePageState extends State<HomePage> {
         child: Column(children: [
           // newsfeed
           Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('User Posts')
-                    .orderBy('TimeStamp', descending: false)
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.hasData) {
-                    return ListView.builder(
-                      controller: scrollController,
-                      physics: BouncingScrollPhysics(),
-                      itemCount: snapshot.data!.docs.length,
-                      itemBuilder: (context, index) {
-                        // get the message
-                        final post = snapshot.data!.docs[index];
-                        return Post(
-                          message: post['Message'],
-                          user: post['UserEmail'],
-                          postId: post.id,
-                          likes: List<String>.from(post['Likes'] ?? []),
-                          time: FormatedDate(post['TimeStamp']),
-                          commentsCount: post['Comments'].length,
-                        );
-                      },
-                    );
-                  } else if (snapshot.hasError) {
-                    return Center(child: Text(snapshot.error.toString()));
-                  }
-                  return Center(
-                      child: CircularProgressIndicator(
-                    color: Theme.of(context).colorScheme.primary,
-                  ));
-                }),
+            child: SingleChildScrollView(
+              physics: BouncingScrollPhysics(),
+              child: StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('User Posts')
+                      .orderBy('TimeStamp', descending: false)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData) {
+                      return ListView.builder(
+                        reverse: true,
+                        shrinkWrap: true,
+                        controller: scrollController,
+                        physics: NeverScrollableScrollPhysics(),
+                        itemCount: snapshot.data!.docs.length,
+                        itemBuilder: (context, index) {
+                          // get the message
+                          final post = snapshot.data!.docs[index];
+
+                          return Post(
+                            message: post['Message'],
+                            user: post['username'],
+                            userEmail: post['UserEmail'],
+                            postId: post.id,
+                            likes: List<String>.from(post['Likes'] ?? []),
+                            time: FormatedDate(post['TimeStamp']),
+                          );
+                        },
+                      );
+                    } else if (snapshot.hasError) {
+                      return Center(child: Text(snapshot.error.toString()));
+                    }
+                    return Center(
+                        child: CircularProgressIndicator(
+                      color: Theme.of(context).colorScheme.primary,
+                    ));
+                  }),
+            ),
           ),
 
           // post message field

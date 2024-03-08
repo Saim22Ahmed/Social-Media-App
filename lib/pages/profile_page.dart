@@ -15,6 +15,7 @@ class ProfilePage extends StatelessWidget {
 
   final currentUser = FirebaseAuth.instance.currentUser!;
   final Users = FirebaseFirestore.instance.collection('Users');
+  final UserPosts = FirebaseFirestore.instance.collection('User Posts');
 
   // edit field
   Future<void> editField(String field, BuildContext context) async {
@@ -28,6 +29,7 @@ class ProfilePage extends StatelessWidget {
                 'Edit $field',
               ),
               content: TextField(
+                  cursorColor: Colors.grey[500],
                   decoration: InputDecoration(
                     border: InputBorder.none,
                     hintText: 'Enter new $field',
@@ -39,26 +41,92 @@ class ProfilePage extends StatelessWidget {
                   }),
               // actions
               actions: [
-                // save
+                // cancel
                 TextButton(
                     child: Text('Cancel',
                         style: TextStyle(
-                            color: Theme.of(context).colorScheme.tertiary)),
+                            color: Theme.of(context).colorScheme.onTertiary)),
                     onPressed: () => Navigator.of(context).pop()),
 
-                // cancel
+                // save
                 TextButton(
                     child: Text('Save',
                         style: TextStyle(
-                            color: Theme.of(context).colorScheme.tertiary)),
-                    onPressed: () => Navigator.of(context).pop(newValue)),
+                            color: Theme.of(context).colorScheme.onTertiary)),
+                    onPressed: () {
+                      Navigator.of(context).pop(newValue);
+                    }),
               ]);
         });
 
     // updating in the firestore
+
     if (newValue != '') {
-      // update when there is soemthing on the textfield
-      await Users.doc(currentUser.email).update({field: newValue});
+      // show the circular progress
+      showDialog(
+          context: context,
+          builder: (context) => Center(
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                ),
+              ));
+      //updating in the userposts collection database also
+
+      // Check if username already exists
+      if (field == 'username') {
+        QuerySnapshot usernameSnapshot =
+            await UserPosts.where('username', isEqualTo: newValue).get();
+
+        if (usernameSnapshot.docs.isNotEmpty) {
+          // Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            backgroundColor: Colors.red[600],
+            dismissDirection: DismissDirection.horizontal,
+            behavior: SnackBarBehavior.floating,
+            margin: EdgeInsets.symmetric(horizontal: 15.w, vertical: 15.h),
+            content: Text(
+              'Username already exists. Please choose a different one.',
+              style: TextStyle(color: Colors.white),
+            ),
+          ));
+          if (context.mounted) Navigator.pop(context);
+          return;
+        }
+
+        // pop the loader
+        if (context.mounted) Navigator.pop(context);
+
+        // update in the Users collection when there is soemthing on the textfield
+        await Users.doc(currentUser.email).update({field: newValue});
+
+        // updating in the User Posts Collection database
+
+        // Query 'User Posts' collection for documents with current user's email
+        var userPostsQuerySnapshot =
+            await UserPosts.where('UserEmail', isEqualTo: currentUser.email)
+                .get();
+
+        // Iterate through each document and update the 'username' field
+        userPostsQuerySnapshot.docs.forEach((postDoc) async {
+          await postDoc.reference.update({'username': newValue});
+        });
+
+        // updating int the Comments collection
+
+        userPostsQuerySnapshot.docs.forEach((postDoc) async {
+          await postDoc.reference
+              .collection('Comments')
+              .where('UserEmail', isEqualTo: currentUser.email)
+              .get()
+              .then((value) {
+            value.docs.forEach((commentDoc) async {
+              await commentDoc.reference.update({'By': newValue});
+            });
+          });
+        });
+
+        // Query 'Comments' collection for documents with current user's email
+      }
     }
   }
 
@@ -102,7 +170,7 @@ class ProfilePage extends StatelessWidget {
                             Center(
                               child: Text(
                                 currentUser.email!,
-                                style: TextStyle(color: Colors.grey[700]),
+                                // style: TextStyle(color: Colors.grey[700]),
                               ),
                             ),
 
@@ -172,7 +240,8 @@ class ProfilePage extends StatelessWidget {
                           final post = snapshot.data!.docs[index];
                           return Post(
                             message: post['Message'],
-                            user: post['UserEmail'],
+                            userEmail: post['UserEmail'],
+                            user: post['username'],
                             postId: post.id,
                             likes: List<String>.from(post['Likes'] ?? []),
                             time: FormatedDate(post['TimeStamp']),
