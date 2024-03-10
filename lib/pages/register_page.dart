@@ -101,7 +101,9 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   void displayMessage(String message, context) {
+    FocusManager.instance.primaryFocus?.unfocus();
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      duration: Duration(seconds: 1),
       backgroundColor: Colors.red[600],
       dismissDirection: DismissDirection.horizontal,
       behavior: SnackBarBehavior.floating,

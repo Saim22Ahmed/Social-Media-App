@@ -9,6 +9,7 @@ import 'package:icons_plus/icons_plus.dart';
 import 'package:word_wall/components/comment.dart';
 import 'package:word_wall/components/comment_button.dart';
 import 'package:word_wall/components/delete_button.dart';
+import 'package:word_wall/components/edit_button.dart';
 import 'package:word_wall/components/like_button.dart';
 import 'package:word_wall/constants.dart';
 import 'package:word_wall/helper/helper_methods.dart';
@@ -42,6 +43,9 @@ class _PostState extends State<Post> {
 
   // commenttextController
   final commentTextController = TextEditingController();
+
+  // edit post text field controller
+  final editPostTextController = TextEditingController();
 
   @override
   void initState() {
@@ -218,16 +222,29 @@ class _PostState extends State<Post> {
                         }
                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                           duration: 900.ms,
-                          backgroundColor:
-                              Theme.of(context).colorScheme.onTertiary,
+                          backgroundColor: Color(0xff00B4D8),
                           dismissDirection: DismissDirection.horizontal,
                           behavior: SnackBarBehavior.floating,
                           margin: EdgeInsets.symmetric(
-                              horizontal: 15.w, vertical: 15.h),
-                          content: Text('Post Deleted'),
+                              horizontal: 15.w, vertical: 25.h),
+                          content: Row(
+                            children: [
+                              Text(
+                                'Post Deleted',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                              10.h.horizontalSpace,
+                              Icon(
+                                Icons.check,
+                                size: 24.sp,
+                              )
+                                  .animate()
+                                  .fade(duration: 300.ms)
+                                  .scaleXY(begin: 0, end: 1.0)
+                            ],
+                          ),
                         ));
-                      }).catchError(
-                              (error) => print("Failed to delete: $error"));
+                      });
 
                       // pop the dialog box
                       Navigator.pop(context);
@@ -237,6 +254,123 @@ class _PostState extends State<Post> {
                             color: Theme.of(context).colorScheme.onTertiary))),
               ]);
         });
+  }
+
+  // edit post
+  void editPost() {
+    editPostTextController.text = widget.message;
+
+    showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(),
+            title: Text('Edit Post'),
+            content: TextField(
+              maxLines: null,
+              cursorColor: Colors.grey[500],
+              controller: editPostTextController,
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                hintText: 'write a post',
+                hintStyle: TextStyle(color: Colors.grey[300]),
+              ),
+              autofocus: true,
+            ),
+
+            // actions
+            actions: [
+              // cancel button
+              TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    editPostTextController.clear();
+                  },
+                  child: Text(
+                    'Cancel',
+                    style: TextStyle(
+                        color: Theme.of(context).colorScheme.onTertiary),
+                  )),
+
+              //Save Button
+              TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+
+                    // update the post
+
+                    updatePost();
+
+                    // clear controller
+
+                    editPostTextController.clear();
+                  },
+                  child: Text(
+                    'Save',
+                    style: TextStyle(
+                        color: Theme.of(context).colorScheme.onTertiary),
+                  )),
+            ],
+          );
+        });
+  }
+
+  void updatePost() async {
+    showDialog(
+        context: context,
+        builder: (context) {
+          return Center(
+              child: CircularProgressIndicator(
+            color: Colors.white,
+          ));
+        });
+
+    if (editPostTextController.text.isNotEmpty) {
+      await FirebaseFirestore.instance
+          .collection('User Posts')
+          .doc(widget.postId)
+          .update({'Message': editPostTextController.text});
+
+      if (context.mounted) {
+        Navigator.pop(context);
+      }
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        duration: 900.ms,
+        backgroundColor: Color(0xff00B4D8),
+        dismissDirection: DismissDirection.horizontal,
+        behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.symmetric(horizontal: 15.w, vertical: 25.h),
+        content: Row(
+          children: [
+            Text(
+              'Post Updated successfully',
+              style: TextStyle(color: Colors.white),
+            ),
+            10.h.horizontalSpace,
+            Icon(
+              Icons.check,
+              size: 24.sp,
+            ).animate().fade(duration: 300.ms).scaleXY(begin: 0, end: 1.0)
+          ],
+        ),
+      ));
+    } else {
+      if (context.mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            duration: 900.ms,
+            backgroundColor: Colors.red,
+            dismissDirection: DismissDirection.horizontal,
+            behavior: SnackBarBehavior.floating,
+            margin: EdgeInsets.symmetric(horizontal: 15.w, vertical: 25.h),
+            content: Row(children: [
+              Text(
+                'Post cannot be empty',
+                style: TextStyle(color: Colors.white),
+              )
+            ])));
+      }
+    }
   }
 
   Future<int> commentsCount() async {
@@ -265,15 +399,10 @@ class _PostState extends State<Post> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // message and user
+            // user and message
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // message
-
-                Text(widget.message),
-                5.h.verticalSpace,
-
                 // user
 
                 Row(children: [
@@ -285,24 +414,47 @@ class _PostState extends State<Post> {
                     ),
                   ),
 
-                  10.h.horizontalSpace,
-
                   // time
-
-                  Text(
-                    widget.time,
-                    style: TextStyle(color: Colors.grey[500], fontSize: 15.sp),
-                  )
                 ]),
+                Text(
+                  widget.time,
+                  style: TextStyle(
+                    color: Colors.grey[500],
+                    fontSize: 15.sp,
+                  ),
+                )
               ],
             ),
 
-            // delelte button
-            if (widget.userEmail == currentUser.email)
-              DeleteButton(onTap: deletePost),
+            // edit and delete button
+
+            Row(
+              children: [
+                // edit button
+                if (widget.userEmail == currentUser.email)
+                  EditButton(onTap: editPost),
+
+                20.h.horizontalSpace,
+                // delelte button
+                if (widget.userEmail == currentUser.email)
+                  DeleteButton(onTap: deletePost),
+              ],
+            )
           ],
         ),
+
+        15.h.verticalSpace,
         //
+
+        // message
+
+        Container(
+            width: MediaQuery.of(context).size.width * 0.65,
+            child: Text(
+              widget.message,
+              softWrap: true,
+            )),
+        5.h.verticalSpace,
 
         22.h.verticalSpace,
         Row(

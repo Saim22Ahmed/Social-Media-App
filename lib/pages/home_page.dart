@@ -77,7 +77,7 @@ class _HomePageState extends State<HomePage> {
 
   void goToProfilePage() {
     Get.back();
-    Get.to(() => ProfilePage(), transition: Transition.rightToLeftWithFade);
+    Get.to(() => ProfilePage(), transition: Transition.fadeIn);
   }
 
   void ScrollToTop() {
