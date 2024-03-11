@@ -245,6 +245,7 @@ class ProfilePage extends StatelessWidget {
                             postId: post.id,
                             likes: List<String>.from(post['Likes'] ?? []),
                             time: FormatedDate(post['TimeStamp']),
+                            imageUrl: post['Image'],
                           );
                         },
                       );

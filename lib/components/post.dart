@@ -1,7 +1,9 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -23,6 +25,7 @@ class Post extends StatefulWidget {
     required this.likes,
     required this.time,
     required this.userEmail,
+    this.imageUrl,
   });
 
   final String message;
@@ -31,6 +34,7 @@ class Post extends StatefulWidget {
   final String postId;
   final String time;
   final List<String> likes;
+  final String? imageUrl;
 
   @override
   State<Post> createState() => _PostState();
@@ -411,6 +415,7 @@ class _PostState extends State<Post> {
                     style: TextStyle(
                       color: Color(0xff00B4D8),
                       fontWeight: FontWeight.bold,
+                      fontSize: 20.sp,
                     ),
                   ),
 
@@ -453,8 +458,43 @@ class _PostState extends State<Post> {
             child: Text(
               widget.message,
               softWrap: true,
+              style: TextStyle(fontSize: 17.sp),
             )),
-        5.h.verticalSpace,
+        18.h.verticalSpace,
+
+        // Image
+
+        if (widget.imageUrl != null)
+          // CachedNetworkImage(
+          //   imageUrl: widget.imageUrl!,
+          //   placeholder: (context, url) {
+          //     return Center(
+          //       child: Container(
+          //         color: Colors.white,
+          //       ),
+          //     );
+          //   },
+          // ),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(18.r),
+            child: Container(
+              decoration: BoxDecoration(
+                  // borderRadius: BorderRadius.circular(9.r),
+                  ),
+              child: Image.network(
+                widget.imageUrl!,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) {
+                    return child;
+                  }
+                  return Container(
+                    color: Colors.white,
+                  ).animate().shimmer();
+                },
+              ),
+            ),
+          ),
 
         22.h.verticalSpace,
         Row(

@@ -1,5 +1,9 @@
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
@@ -7,12 +11,15 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:icons_plus/icons_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:word_wall/components/myTextFormFields.dart';
 import 'package:word_wall/components/my_drawer.dart';
 import 'package:word_wall/components/post.dart';
 import 'package:word_wall/constants.dart';
 import 'package:word_wall/helper/helper_methods.dart';
 import 'package:word_wall/pages/profile_page.dart';
+import 'dart:developer';
 
 class HomePage extends StatefulWidget {
   HomePage({super.key});
@@ -29,6 +36,13 @@ class _HomePageState extends State<HomePage> {
 
   // scroll controller
   ScrollController scrollController = ScrollController();
+
+  // pickedfile
+  PlatformFile? pickedfile;
+  bool permissionGranted = false;
+  bool isLoading = false;
+
+  String? ImageURL = ''; // image url from firebase storage
 
   void signOut() {
     FirebaseAuth.instance.signOut();
@@ -56,6 +70,13 @@ class _HomePageState extends State<HomePage> {
 
       final username = userData.data()!['username'];
 
+      if (pickedfile != null) {
+        await uploadImageToFirebase();
+      }
+
+      // Check if ImageURL is empty, if so, set it to null
+      ImageURL = ImageURL!.isNotEmpty ? ImageURL : null;
+
       // add post in firestore
       FirebaseFirestore.instance.collection('User Posts').add({
         'Message': textController.text,
@@ -63,6 +84,13 @@ class _HomePageState extends State<HomePage> {
         'TimeStamp': Timestamp.now(),
         'username': username,
         'Likes': [],
+        'Image': ImageURL,
+      });
+
+      // clear the image url and picked file
+      setState(() {
+        pickedfile = null;
+        ImageURL = '';
       });
 
       // pop loading circle
@@ -89,6 +117,97 @@ class _HomePageState extends State<HomePage> {
         curve: Curves.easeOut,
       );
     });
+  }
+
+  // getting storage permission from user
+  Future _getStoragePermission() async {
+    if (await Permission.storage.request().isGranted) {
+      setState(() {
+        permissionGranted = true;
+      });
+    }
+  }
+
+  // picking file from gallery
+  Future pickImage() async {
+    log('pick Image function called');
+    // _getStoragePermission();
+    // Set isLoading to true to display loading icon
+    setState(() {
+      isLoading = true;
+    });
+
+    // picking file using file picker package
+    FilePickerResult? result = await FilePicker.platform.pickFiles();
+
+    if (result == null) {
+      log('No file selected');
+      // Set isLoading to true to display loading icon
+      setState(() {
+        isLoading = false;
+      });
+      return;
+    }
+
+    // get the file
+    setState(() {
+      pickedfile = result.files.first;
+      log(pickedfile!.name.toString());
+      isLoading = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      duration: 1000.ms,
+      backgroundColor: Color(0xff00B4D8),
+      dismissDirection: DismissDirection.horizontal,
+      behavior: SnackBarBehavior.floating,
+      margin: EdgeInsets.symmetric(horizontal: 15.w, vertical: 25.h),
+      content: Row(
+        children: [
+          Text(
+            'Image Loaded successfully',
+            style: TextStyle(color: Colors.white),
+          ),
+          10.h.horizontalSpace,
+          Icon(
+            Icons.check,
+            size: 24.sp,
+          ).animate().fade(duration: 300.ms).scaleXY(begin: 0, end: 1.0)
+        ],
+      ),
+    ));
+  }
+
+  // Function to upload image to Firebase Storage
+  Future uploadImageToFirebase() async {
+    log('uploading image to firebase');
+    log(pickedfile!.path.toString());
+
+    if (pickedfile != null) {
+      try {
+        // timestamp
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        // path of the posted images to be stored on firestorage
+        final path = 'post_images/${timestamp}-${pickedfile!.name}';
+
+        // image to be uploaded
+        final file = File(pickedfile!.path!);
+
+        final storageReference = FirebaseStorage.instance.ref().child(path);
+
+        // uploading image
+
+        final uploadTask = storageReference.putFile(file);
+        log('image uploaded');
+
+        final snapshot = await uploadTask.whenComplete(() {});
+
+        ImageURL = await snapshot.ref.getDownloadURL();
+        log('Download-Link: $ImageURL');
+      } catch (e) {
+        print('Error uploading image: $e');
+        return null;
+      }
+    }
   }
 
   @override
@@ -137,6 +256,7 @@ class _HomePageState extends State<HomePage> {
                             postId: post.id,
                             likes: List<String>.from(post['Likes'] ?? []),
                             time: FormatedDate(post['TimeStamp']),
+                            imageUrl: post['Image'],
                           );
                         },
                       );
@@ -158,12 +278,31 @@ class _HomePageState extends State<HomePage> {
               children: [
                 Expanded(
                   child: PostMessageField(
-                    textController: textController,
-                    onTap: () {},
-                  ),
+                      textController: textController,
+                      onTap: () {},
+
+                      // image upload button
+
+                      prefix: isLoading
+                          ? Icon(
+                              Icons.more_horiz_outlined,
+                              size: 24.sp,
+                            )
+                              .animate(
+                                onPlay: (controller) => controller.repeat(),
+                              )
+                              .fade()
+                              .rotate()
+                          : Icon(
+                              Icons.image,
+                              size: 24.sp,
+                            ),
+                      onTapPrefix: () {
+                        pickImage();
+                      }),
                 ),
                 IconButton(
-                    onPressed: () {
+                    onPressed: () async {
                       postmessage();
                     },
                     icon: Icon(
@@ -197,10 +336,14 @@ class PostMessageField extends StatefulWidget {
     super.key,
     required this.textController,
     required this.onTap,
+    required this.prefix,
+    this.onTapPrefix,
   });
 
   final TextEditingController textController;
   final void Function()? onTap;
+  final Widget? prefix;
+  final void Function()? onTapPrefix;
 
   @override
   State<PostMessageField> createState() => _PostMessageFieldState();
@@ -221,6 +364,10 @@ class _PostMessageFieldState extends State<PostMessageField> {
         FocusManager.instance.primaryFocus!.unfocus();
       },
       decoration: InputDecoration(
+        prefixIcon: GestureDetector(
+          child: widget.prefix,
+          onTap: widget.onTapPrefix,
+        ),
         contentPadding: EdgeInsets.symmetric(vertical: 2, horizontal: 15.w),
         filled: true,
         fillColor: Theme.of(context).colorScheme.primary,

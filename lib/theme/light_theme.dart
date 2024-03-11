@@ -9,7 +9,7 @@ ThemeData lightTheme = ThemeData(
       background: Color(0xffCAF0F8),
       primary: Colors.white,
       secondary: Color(0xffCAF0F8),
-      onSecondary: Color(0xff95A3B3),
+      onSecondary: Colors.grey[900]!,
       tertiary: Color(0xff00B4D8),
       onTertiary: Color(0xff00B4D8),
     ));
