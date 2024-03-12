@@ -47,13 +47,16 @@ class _CommentState extends State<Comment> {
             widget.user,
             style: TextStyle(
                 color: Theme.of(context).colorScheme.onSecondary,
-                fontWeight: FontWeight.bold),
+                fontWeight: FontWeight.bold,
+                fontSize: 17.sp),
           )
         ]),
         5.h.verticalSpace,
         // comment
 
-        Text(widget.comment),
+        Text(
+          widget.comment,
+        ),
 
         // Date and Time
 

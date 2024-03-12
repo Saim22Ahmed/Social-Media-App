@@ -8,6 +8,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:icons_plus/icons_plus.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:word_wall/components/comment.dart';
 import 'package:word_wall/components/comment_button.dart';
 import 'package:word_wall/components/delete_button.dart';
@@ -241,6 +242,7 @@ class _PostState extends State<Post> {
                               Icon(
                                 Icons.check,
                                 size: 24.sp,
+                                color: Colors.white,
                               )
                                   .animate()
                                   .fade(duration: 300.ms)
@@ -413,7 +415,9 @@ class _PostState extends State<Post> {
                   Text(
                     widget.user + '.',
                     style: TextStyle(
-                      color: Color(0xff00B4D8),
+                      // color: Color(0xff00B4D8),
+
+                      color: Theme.of(context).colorScheme.inversePrimary,
                       fontWeight: FontWeight.bold,
                       fontSize: 20.sp,
                     ),
@@ -465,35 +469,30 @@ class _PostState extends State<Post> {
         // Image
 
         if (widget.imageUrl != null)
-          // CachedNetworkImage(
-          //   imageUrl: widget.imageUrl!,
-          //   placeholder: (context, url) {
-          //     return Center(
-          //       child: Container(
-          //         color: Colors.white,
-          //       ),
-          //     );
-          //   },
-          // ),
           ClipRRect(
             borderRadius: BorderRadius.circular(18.r),
-            child: Container(
-              decoration: BoxDecoration(
-                  // borderRadius: BorderRadius.circular(9.r),
-                  ),
-              child: Image.network(
-                widget.imageUrl!,
+            child: CachedNetworkImage(
                 fit: BoxFit.cover,
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) {
-                    return child;
-                  }
+                imageUrl: widget.imageUrl!,
+                maxHeightDiskCache: 300,
+                placeholder: (context, url) {
                   return Container(
-                    color: Colors.white,
-                  ).animate().shimmer();
-                },
-              ),
-            ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(18.r),
+                      color: Theme.of(context).hintColor,
+                    ),
+                    height: 300.h,
+                    width: double.infinity,
+                  )
+                      .animate(
+                        onPlay: (controller) => controller.repeat(),
+                      )
+                      .shimmer(
+                        curve: Curves.easeOut,
+                        duration: 1600.ms,
+                        color: Theme.of(context).shadowColor,
+                      );
+                }),
           ),
 
         22.h.verticalSpace,
@@ -544,35 +543,6 @@ class _PostState extends State<Post> {
 
         // comments under the post
 
-        // StreamBuilder(
-        //     stream: FirebaseFirestore.instance
-        //         .collection('User Posts')
-        //         .doc(widget.postId)
-        //         .collection('Comments')
-        //         .orderBy('time', descending: true)
-        //         .snapshots(),
-        //     builder: (context, snapshot) {
-        //       if (!snapshot.hasData) {
-        //         return Center(
-        //             child: CircularProgressIndicator(
-        //                 color: Theme.of(context).colorScheme.primary));
-        //       } else {
-        //         return ListView(
-        //             shrinkWrap: true,
-        //             physics: const NeverScrollableScrollPhysics(),
-        //             children: snapshot.data!.docs.map((doc) {
-        //               final commentData = doc.data() as Map<String, dynamic>;
-        //               return Comment(
-        //                 comment: commentData['Comment'],
-        //                 user: commentData['By'],
-        //                 time: FormatedTime(
-        //                   commentData['time'],
-        //                 ),
-        //                 date: FormatedDate(commentData['time']),
-        //               );
-        //             }).toList());
-        //       }
-        //     })
         StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
                 .collection('User Posts')
@@ -607,7 +577,22 @@ class _PostState extends State<Post> {
               }
 
               return Center(
-                child: Container(),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(18.r),
+                    color: Theme.of(context).hintColor,
+                  ),
+                  height: 100.h,
+                  width: double.infinity,
+                )
+                    .animate(
+                      onPlay: (controller) => controller.repeat(),
+                    )
+                    .shimmer(
+                      curve: Curves.easeOut,
+                      duration: 1600.ms,
+                      color: Theme.of(context).shadowColor,
+                    ),
               );
             })
       ]),

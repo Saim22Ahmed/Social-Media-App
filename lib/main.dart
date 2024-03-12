@@ -8,6 +8,7 @@ import 'package:word_wall/auth/login_or_register.dart';
 import 'package:word_wall/firebase_options.dart';
 import 'package:word_wall/pages/login_page.dart';
 import 'package:word_wall/pages/register_page.dart';
+import 'package:word_wall/pages/splash_page.dart';
 import 'package:word_wall/theme/dark_theme.dart';
 import 'package:word_wall/theme/light_theme.dart';
 
@@ -31,7 +32,7 @@ class MyApp extends StatelessWidget {
           title: 'Flutter Demo',
           theme: lightTheme,
           darkTheme: darkTheme,
-          home: AuthPage(),
+          home: SplashScreen(),
         );
       },
     );

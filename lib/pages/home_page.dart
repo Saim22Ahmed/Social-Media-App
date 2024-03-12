@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -44,11 +45,51 @@ class _HomePageState extends State<HomePage> {
 
   String? ImageURL = ''; // image url from firebase storage
 
+  String _username = ''; //curren user name
+
   void signOut() {
     FirebaseAuth.instance.signOut();
   }
 
+  fetchUserName() async {
+    final userData = await FirebaseFirestore.instance
+        .collection('Users')
+        .doc(currentUser.email)
+        .get();
+
+    final username = userData.data()!['username'];
+    setState(() {
+      _username = username;
+    });
+    return username;
+  }
+
   void postmessage() async {
+    // if textfield is empty but image is picked
+    if (textController.text.isEmpty && pickedfile != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        duration: 1000.ms,
+        backgroundColor: Colors.red,
+        dismissDirection: DismissDirection.horizontal,
+        behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.symmetric(horizontal: 15.w, vertical: 25.h),
+        content: Row(
+          children: [
+            Text(
+              'Please write some message',
+              style: TextStyle(color: Colors.white),
+            ),
+            10.h.horizontalSpace,
+            Icon(
+              Icons.error,
+              color: Colors.white,
+              size: 24.sp,
+            ).animate().fade(duration: 300.ms).scaleXY(begin: 0, end: 1.0)
+          ],
+        ),
+      ));
+    }
+
     // if text field is not empty
     if (textController.text.isNotEmpty) {
       // show loading circle
@@ -100,6 +141,29 @@ class _HomePageState extends State<HomePage> {
       // clear the textfield
 
       textController.clear();
+
+      // show snackbar
+
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        duration: 1000.ms,
+        backgroundColor: Color(0xff00B4D8),
+        dismissDirection: DismissDirection.horizontal,
+        behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.symmetric(horizontal: 15.w, vertical: 25.h),
+        content: Row(
+          children: [
+            Text(
+              'Posted successfully',
+              style: TextStyle(color: Colors.white),
+            ),
+            10.h.horizontalSpace,
+            Icon(
+              Icons.check,
+              size: 24.sp,
+            ).animate().fade(duration: 300.ms).scaleXY(begin: 0, end: 1.0)
+          ],
+        ),
+      ));
     }
   }
 
@@ -155,26 +219,6 @@ class _HomePageState extends State<HomePage> {
       log(pickedfile!.name.toString());
       isLoading = false;
     });
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      duration: 1000.ms,
-      backgroundColor: Color(0xff00B4D8),
-      dismissDirection: DismissDirection.horizontal,
-      behavior: SnackBarBehavior.floating,
-      margin: EdgeInsets.symmetric(horizontal: 15.w, vertical: 25.h),
-      content: Row(
-        children: [
-          Text(
-            'Image Loaded successfully',
-            style: TextStyle(color: Colors.white),
-          ),
-          10.h.horizontalSpace,
-          Icon(
-            Icons.check,
-            size: 24.sp,
-          ).animate().fade(duration: 300.ms).scaleXY(begin: 0, end: 1.0)
-        ],
-      ),
-    ));
   }
 
   // Function to upload image to Firebase Storage
@@ -211,8 +255,15 @@ class _HomePageState extends State<HomePage> {
   }
 
   @override
+  void initState() {
+    // TODO: implement initState
+    fetchUserName();
+    super.initState();
+  }
+
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       drawer: MyDrawer(
         onProfileTap: goToProfilePage,
         onSignOut: signOut,
@@ -298,6 +349,7 @@ class _HomePageState extends State<HomePage> {
                               size: 24.sp,
                             ),
                       onTapPrefix: () {
+                        FocusManager.instance.primaryFocus!.unfocus();
                         pickImage();
                       }),
                 ),
@@ -307,12 +359,45 @@ class _HomePageState extends State<HomePage> {
                     },
                     icon: Icon(
                       Icons.send,
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onTertiary,
                     ))
               ],
             ),
           ),
-          // current user email
+
+          // image preview
+          if (pickedfile != null)
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18.r),
+                ),
+                padding: EdgeInsets.all(15),
+                child: Stack(children: [
+                  // image
+
+                  ClipRRect(
+                      borderRadius: BorderRadius.circular(18.r),
+                      child: Image.file(File(pickedfile!.path!),
+                          fit: BoxFit.cover)),
+
+                  // cancel button
+
+                  Positioned(
+                      top: 0,
+                      right: 0,
+                      child: IconButton(
+                        onPressed: () {
+                          setState(() {
+                            pickedfile = null;
+                          });
+                        },
+                        icon: Icon(Icons.cancel),
+                      ))
+                ]),
+              ),
+            ),
+          // current user name
           Padding(
             padding: EdgeInsets.only(bottom: 15.h),
             child: Container(
@@ -321,7 +406,7 @@ class _HomePageState extends State<HomePage> {
                 borderRadius: BorderRadius.circular(8.r),
                 color: Theme.of(context).colorScheme.tertiary,
               ),
-              child: Text('Logged in as ' + currentUser.email!,
+              child: Text('Logged in as ' + _username,
                   style: TextStyle(color: Colors.white)),
             ),
           ),
@@ -343,6 +428,7 @@ class PostMessageField extends StatefulWidget {
   final TextEditingController textController;
   final void Function()? onTap;
   final Widget? prefix;
+
   final void Function()? onTapPrefix;
 
   @override
@@ -353,6 +439,7 @@ class _PostMessageFieldState extends State<PostMessageField> {
   @override
   Widget build(BuildContext context) {
     return TextField(
+      maxLines: null,
       cursorColor: Theme.of(context).colorScheme.onTertiary,
       onTap: widget.onTap,
       style: TextStyle(
