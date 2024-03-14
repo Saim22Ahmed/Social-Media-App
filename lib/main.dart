@@ -1,4 +1,7 @@
+import 'dart:developer';
+
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -15,7 +18,16 @@ import 'package:word_wall/theme/light_theme.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  FirebaseMessaging.onBackgroundMessage(firebaseBackgroungNotificationHandler);
+
   runApp(const MyApp());
+}
+
+@pragma('vm:entry-point')
+Future<void> firebaseBackgroungNotificationHandler(
+    RemoteMessage message) async {
+  await Firebase.initializeApp();
+  log(message.notification!.title.toString());
 }
 
 class MyApp extends StatelessWidget {
@@ -32,6 +44,8 @@ class MyApp extends StatelessWidget {
           title: 'Flutter Demo',
           theme: lightTheme,
           darkTheme: darkTheme,
+          //define font for the app
+
           home: SplashScreen(),
         );
       },

@@ -1,10 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:icons_plus/icons_plus.dart';
+import 'package:word_wall/auth/notification_services.dart';
 import 'package:word_wall/components/myTextFormFields.dart';
 import 'package:word_wall/components/mybutton.dart';
 import 'package:word_wall/constants.dart';
@@ -25,6 +27,8 @@ class _RegisterPageState extends State<RegisterPage> {
   final email_controller = TextEditingController();
   final password_controller = TextEditingController();
   final confirm_password_controller = TextEditingController();
+
+  NotificationServices notificationServices = NotificationServices();
 
   void signUp(context) async {
     // if text field is not empty
@@ -79,8 +83,13 @@ class _RegisterPageState extends State<RegisterPage> {
       UserCredential userCredential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(
               email: email_controller.text, password: password_controller.text);
+      Navigator.pop(context);
 
       // after user created , create a new document for the user in firestore
+
+      // getting device token for the user device to send notification
+
+      String? device_token = await notificationServices.getDeviceToken();
 
       FirebaseFirestore.instance
           .collection('Users')
@@ -89,6 +98,7 @@ class _RegisterPageState extends State<RegisterPage> {
         'username': username_controller.text,
         //inital username (saim@gmail.com = saim)
         'bio': 'Write your bio...',
+        'device token': device_token,
       });
       //pop loading circle
       if (context.mounted) {

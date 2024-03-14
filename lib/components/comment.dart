@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class Comment extends StatefulWidget {
   Comment(
@@ -43,13 +44,12 @@ class _CommentState extends State<Comment> {
         // user
 
         Row(children: [
-          Text(
-            widget.user,
-            style: TextStyle(
+          Text(widget.user,
+              style: TextStyle(
                 color: Theme.of(context).colorScheme.onSecondary,
                 fontWeight: FontWeight.bold,
-                fontSize: 17.sp),
-          )
+                fontSize: 17.sp,
+              ))
         ]),
         5.h.verticalSpace,
         // comment

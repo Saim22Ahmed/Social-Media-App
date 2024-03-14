@@ -1,12 +1,14 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:icons_plus/icons_plus.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:word_wall/components/comment.dart';
@@ -251,9 +253,14 @@ class _PostState extends State<Post> {
                           ),
                         ));
                       });
-
                       // pop the dialog box
                       Navigator.pop(context);
+
+                      // delete the image from firebase storage also
+
+                      await FirebaseStorage.instance
+                          .refFromURL(widget.imageUrl!)
+                          .delete();
                     },
                     child: Text('Delete',
                         style: TextStyle(
@@ -418,7 +425,8 @@ class _PostState extends State<Post> {
                       // color: Color(0xff00B4D8),
 
                       color: Theme.of(context).colorScheme.inversePrimary,
-                      fontWeight: FontWeight.bold,
+                      // fontWeight: FontWeight.bold,
+                      fontFamily: GoogleFonts.righteous().fontFamily,
                       fontSize: 20.sp,
                     ),
                   ),
@@ -458,7 +466,7 @@ class _PostState extends State<Post> {
         // message
 
         Container(
-            width: MediaQuery.of(context).size.width * 0.65,
+            width: MediaQuery.of(context).size.width * 0.8,
             child: Text(
               widget.message,
               softWrap: true,
@@ -574,6 +582,8 @@ class _PostState extends State<Post> {
                     child: Text(
                   snapshot.error.toString(),
                 ));
+              } else if (!snapshot.hasData) {
+                return Container();
               }
 
               return Center(

@@ -1,10 +1,13 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
@@ -14,6 +17,7 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:icons_plus/icons_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:word_wall/auth/notification_services.dart';
 import 'package:word_wall/components/myTextFormFields.dart';
 import 'package:word_wall/components/my_drawer.dart';
 import 'package:word_wall/components/post.dart';
@@ -21,6 +25,8 @@ import 'package:word_wall/constants.dart';
 import 'package:word_wall/helper/helper_methods.dart';
 import 'package:word_wall/pages/profile_page.dart';
 import 'dart:developer';
+
+import 'package:http/http.dart' as http;
 
 class HomePage extends StatefulWidget {
   HomePage({super.key});
@@ -34,6 +40,9 @@ class _HomePageState extends State<HomePage> {
 
   // text controller
   final textController = TextEditingController();
+
+  // notification Controller
+  NotificationServices notificationServices = NotificationServices();
 
   // scroll controller
   ScrollController scrollController = ScrollController();
@@ -128,6 +137,8 @@ class _HomePageState extends State<HomePage> {
         'Image': ImageURL,
       });
 
+      await sendFCMNotificationToTopic();
+
       // clear the image url and picked file
       setState(() {
         pickedfile = null;
@@ -141,6 +152,8 @@ class _HomePageState extends State<HomePage> {
       // clear the textfield
 
       textController.clear();
+
+      ScrollToTop();
 
       // show snackbar
 
@@ -160,7 +173,7 @@ class _HomePageState extends State<HomePage> {
             Icon(
               Icons.check,
               size: 24.sp,
-            ).animate().fade(duration: 300.ms).scaleXY(begin: 0, end: 1.0)
+            ).animate().fade(duration: 300.ms).scaleXY(begin: 0, end: 1.0),
           ],
         ),
       ));
@@ -168,7 +181,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   void goToProfilePage() {
-    Get.back();
+    Navigator.pop(context);
     Get.to(() => ProfilePage(), transition: Transition.fadeIn);
   }
 
@@ -176,7 +189,7 @@ class _HomePageState extends State<HomePage> {
     return WidgetsBinding.instance?.addPostFrameCallback((timeStamp) {
       // Scroll to the bottom of the list after new data is loaded
       scrollController.animateTo(
-        scrollController.position.maxScrollExtent,
+        scrollController.position.minScrollExtent,
         duration: Duration(milliseconds: 100),
         curve: Curves.easeOut,
       );
@@ -195,7 +208,7 @@ class _HomePageState extends State<HomePage> {
   // picking file from gallery
   Future pickImage() async {
     log('pick Image function called');
-    // _getStoragePermission();
+    _getStoragePermission();
     // Set isLoading to true to display loading icon
     setState(() {
       isLoading = true;
@@ -254,9 +267,57 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  Future<void> sendFCMNotificationToTopic() async {
+    try {
+      var currentDeviceToken = await notificationServices.getDeviceToken();
+      // Get all user tokens from Firestore
+      QuerySnapshot tokenSnapshot =
+          await FirebaseFirestore.instance.collection('Users').get();
+      List tokens = tokenSnapshot.docs
+          .map((doc) => doc['device token'])
+          .where((token) => token != currentDeviceToken)
+          .toList();
+
+      log('Tokens: ${tokens.length}');
+
+      // Construct the message
+      var message = {
+        'registration_ids': tokens,
+        'priority': 'high',
+        'notification': {
+          'title': '${_username} added a new Post ! ',
+          'body': 'Check out what\'s he is upto :)',
+        },
+        'data': {
+          'click_action': 'FLUTTER_NOTIFICATION_CLICK',
+          'id': '1',
+        }
+      };
+
+      // Send the message to the Firebase Cloud Messaging topic
+      await http.post(Uri.parse('https://fcm.googleapis.com/fcm/send'),
+          headers: {
+            'Content-Type': 'application/json; charset=UTF-8',
+            'Authorization':
+                'key=AAAAr2uLlVY:APA91bGrDo-ixGSqaNwspdFc0XzbZXqS43Meyk3gwfqOq6dYYv9H1PWK4X1sbLC-DGb4ZUs___1jsvOUXix63VDB2ngzx6QLSSGdjJC9z9Gy6tiS5XTMjn6rSSrLi1SR1AkZ2zcpJr0G'
+          },
+          body: jsonEncode(message));
+
+      // Send the message
+    } catch (e) {
+      print('Error sending FCM notification: $e');
+    }
+  }
+
   @override
   void initState() {
     // TODO: implement initState
+    notificationServices.requestNotificationPermission();
+    notificationServices.firebaseInit(context);
+    notificationServices.isTokenRefresh();
+    notificationServices
+        .getDeviceToken()
+        .then((value) => log('Device Token: $value'));
     fetchUserName();
     super.initState();
   }
@@ -273,15 +334,17 @@ class _HomePageState extends State<HomePage> {
         scrolledUnderElevation: 0,
         elevation: 0,
         centerTitle: true,
-        title: Text(
-          'Word Wall',
-        ),
+        title: Text('Pulse',
+            style: TextStyle(
+                fontFamily: GoogleFonts.righteous().fontFamily,
+                color: Theme.of(context).colorScheme.onPrimary)),
       ),
       body: Center(
-        child: Column(children: [
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
           // newsfeed
           Expanded(
             child: SingleChildScrollView(
+              controller: scrollController,
               physics: BouncingScrollPhysics(),
               child: StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance
@@ -293,7 +356,6 @@ class _HomePageState extends State<HomePage> {
                       return ListView.builder(
                         reverse: true,
                         shrinkWrap: true,
-                        controller: scrollController,
                         physics: NeverScrollableScrollPhysics(),
                         itemCount: snapshot.data!.docs.length,
                         itemBuilder: (context, index) {
@@ -314,10 +376,14 @@ class _HomePageState extends State<HomePage> {
                     } else if (snapshot.hasError) {
                       return Center(child: Text(snapshot.error.toString()));
                     }
-                    return Center(
+                    return SizedBox(
+                      height: 500.h,
+                      child: Center(
                         child: CircularProgressIndicator(
-                      color: Theme.of(context).colorScheme.primary,
-                    ));
+                          color: Colors.white,
+                        ),
+                      ),
+                    );
                   }),
             ),
           ),
@@ -327,32 +393,30 @@ class _HomePageState extends State<HomePage> {
             padding: const EdgeInsets.all(20.0),
             child: Row(
               children: [
-                Expanded(
-                  child: PostMessageField(
-                      textController: textController,
-                      onTap: () {},
+                PostMessageField(
+                    textController: textController,
+                    onTap: () {},
 
-                      // image upload button
+                    // image upload button
 
-                      prefix: isLoading
-                          ? Icon(
-                              Icons.more_horiz_outlined,
-                              size: 24.sp,
+                    prefix: isLoading
+                        ? Icon(
+                            Icons.more_horiz_outlined,
+                            size: 24.sp,
+                          )
+                            .animate(
+                              onPlay: (controller) => controller.repeat(),
                             )
-                              .animate(
-                                onPlay: (controller) => controller.repeat(),
-                              )
-                              .fade()
-                              .rotate()
-                          : Icon(
-                              Icons.image,
-                              size: 24.sp,
-                            ),
-                      onTapPrefix: () {
-                        FocusManager.instance.primaryFocus!.unfocus();
-                        pickImage();
-                      }),
-                ),
+                            .fade()
+                            .rotate()
+                        : Icon(
+                            Icons.image,
+                            size: 24.sp,
+                          ),
+                    onTapPrefix: () {
+                      FocusManager.instance.primaryFocus!.unfocus();
+                      pickImage();
+                    }),
                 IconButton(
                     onPressed: () async {
                       postmessage();
@@ -438,46 +502,54 @@ class PostMessageField extends StatefulWidget {
 class _PostMessageFieldState extends State<PostMessageField> {
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      maxLines: null,
-      cursorColor: Theme.of(context).colorScheme.onTertiary,
-      onTap: widget.onTap,
-      style: TextStyle(
-        // height: 1.h,
-        fontSize: 16.sp,
-      ),
-      controller: widget.textController,
-      onTapOutside: (event) {
-        FocusManager.instance.primaryFocus!.unfocus();
-      },
-      decoration: InputDecoration(
-        prefixIcon: GestureDetector(
-          child: widget.prefix,
-          onTap: widget.onTapPrefix,
-        ),
-        contentPadding: EdgeInsets.symmetric(vertical: 2, horizontal: 15.w),
-        filled: true,
-        fillColor: Theme.of(context).colorScheme.primary,
-        border: OutlineInputBorder(
-          borderSide: BorderSide.none,
-          borderRadius: BorderRadius.circular(4.r),
-        ),
-        enabledBorder: OutlineInputBorder(
-            borderSide: BorderSide(
-          color: Theme.of(context).colorScheme.secondary,
-          width: 1.w,
-        )),
-        focusedBorder: OutlineInputBorder(
-          borderSide: BorderSide(
-            color: Theme.of(context).colorScheme.onTertiary,
-            width: 1.w,
+    return Expanded(
+      child: Scrollbar(
+        thickness: 4.w,
+        child: TextField(
+          scrollPhysics: BouncingScrollPhysics(),
+          keyboardType: TextInputType.multiline,
+          maxLines: 6,
+          minLines: 1,
+          cursorColor: Theme.of(context).colorScheme.onTertiary,
+          onTap: widget.onTap,
+          style: TextStyle(
+            // height: 1.h,
+            fontSize: 16.sp,
           ),
-          borderRadius: BorderRadius.circular(4.r),
-        ),
-        hintText: 'Write your thoughts..',
-        hintStyle: TextStyle(
-          fontSize: 16.sp,
-          color: Colors.grey[600],
+          controller: widget.textController,
+          onTapOutside: (event) {
+            FocusManager.instance.primaryFocus!.unfocus();
+          },
+          decoration: InputDecoration(
+            prefixIcon: GestureDetector(
+              child: widget.prefix,
+              onTap: widget.onTapPrefix,
+            ),
+            contentPadding: EdgeInsets.symmetric(vertical: 2, horizontal: 15.w),
+            filled: true,
+            fillColor: Theme.of(context).colorScheme.primary,
+            border: OutlineInputBorder(
+              borderSide: BorderSide.none,
+              borderRadius: BorderRadius.circular(4.r),
+            ),
+            enabledBorder: OutlineInputBorder(
+                borderSide: BorderSide(
+              color: Theme.of(context).colorScheme.secondary,
+              width: 1.w,
+            )),
+            focusedBorder: OutlineInputBorder(
+              borderSide: BorderSide(
+                color: Theme.of(context).colorScheme.onTertiary,
+                width: 1.w,
+              ),
+              borderRadius: BorderRadius.circular(4.r),
+            ),
+            hintText: 'Write your thoughts..',
+            hintStyle: TextStyle(
+              fontSize: 16.sp,
+              color: Colors.grey[600],
+            ),
+          ),
         ),
       ),
     );

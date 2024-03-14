@@ -15,10 +15,10 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
-    // Future.delayed(Duration(seconds: 10), () {
-    //   Navigator.push(
-    //       context, MaterialPageRoute(builder: (context) => AuthPage()));
-    // });
+    Future.delayed(Duration(seconds: 2), () {
+      Navigator.pushReplacement(
+          context, MaterialPageRoute(builder: (context) => AuthPage()));
+    });
     // TODO: implement initState
     super.initState();
   }
@@ -29,13 +29,8 @@ class _SplashScreenState extends State<SplashScreen> {
         body: Center(
       child: Container(
         decoration: BoxDecoration(
-            gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-              Color(0xff00B4D8),
-              Color(0xff0A6678),
-            ])),
+          color: Theme.of(context).splashColor,
+        ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -43,29 +38,25 @@ class _SplashScreenState extends State<SplashScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  'thoughtfull',
+                  'Pulse',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onBackground,
                     fontSize: 50.sp,
                     fontWeight: FontWeight.bold,
-                    fontFamily: GoogleFonts.nunito().fontFamily,
+                    // fontFamily: GoogleFonts.nunito().fontFamily,
+                    // fontFamily: GoogleFonts.josefinSans().fontFamily,
+                    fontFamily: GoogleFonts.righteous().fontFamily,
                   ),
-                ),
-                SizedBox(width: 15.w),
-                Icon(
-                  Icons.motion_photos_on,
-                  color: Colors.white,
-                  size: 54.sp,
                 )
+
+                // SizedBox(width: 15.w),
+                // Icon(
+                //   Icons.motion_photos_on,
+                //   color: Colors.white,
+                //   size: 54.sp,
+                // )
               ],
             )
-                .animate(
-                  onPlay: (controller) => controller.repeat(),
-                )
-                .shimmer(
-                  angle: 45,
-                  duration: Duration(seconds: 2),
-                ),
           ],
         ),
       ),

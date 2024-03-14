@@ -160,7 +160,7 @@ class ProfilePage extends StatelessWidget {
                             50.h.verticalSpace,
                             Icon(
                               Icons.person,
-                              color: Theme.of(context).colorScheme.tertiary,
+                              color: Theme.of(context).colorScheme.onTertiary,
                               size: 70.sp,
                             ),
 
@@ -170,7 +170,7 @@ class ProfilePage extends StatelessWidget {
                             Center(
                               child: Text(
                                 currentUser.email!,
-                                // style: TextStyle(color: Colors.grey[700]),
+                                // style: TextStyle(color: Theme.of(context).colorScheme.primary),
                               ),
                             ),
 
