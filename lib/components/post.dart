@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:developer';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -18,6 +21,7 @@ import 'package:word_wall/components/edit_button.dart';
 import 'package:word_wall/components/like_button.dart';
 import 'package:word_wall/constants.dart';
 import 'package:word_wall/helper/helper_methods.dart';
+import 'package:http/http.dart' as http;
 
 class Post extends StatefulWidget {
   Post({
@@ -111,6 +115,58 @@ class _PostState extends State<Post> {
       'time': Timestamp.now(),
       'UserEmail': currentUser.email
     });
+
+    SendNotificationToPostOwner(comment, username);
+  }
+
+// delete comment
+
+  void SendNotificationToPostOwner(comment, username) async {
+    // Fetch the post owner's user token from Firestore
+    DocumentSnapshot postOwnerSnapshot = await FirebaseFirestore.instance
+        .collection('User Posts')
+        .doc(widget.postId)
+        .get();
+    var postOwnerEmail = postOwnerSnapshot['UserEmail'];
+
+    // fetching postowner device token
+    final postOwnerToken = await FirebaseFirestore.instance
+        .collection('Users')
+        .doc(postOwnerEmail)
+        .get()
+        .then((value) => value['device token']);
+
+    log('Post Owner Token: $postOwnerToken');
+
+    // Construct the FCM notification message
+    try {
+      var message = {
+        'to': postOwnerToken,
+        'priority': 'high',
+        'notification': {
+          'title': '$username commented on your post',
+          'body': '$username: $comment',
+        },
+        'data': {
+          'click_action': 'FLUTTER_NOTIFICATION_CLICK',
+          'id': '1',
+        }
+      };
+
+      // Send the message to the post owner's device
+      await http.post(
+        Uri.parse('https://fcm.googleapis.com/fcm/send'),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization':
+              'key=AAAAr2uLlVY:APA91bGrDo-ixGSqaNwspdFc0XzbZXqS43Meyk3gwfqOq6dYYv9H1PWK4X1sbLC-DGb4ZUs___1jsvOUXix63VDB2ngzx6QLSSGdjJC9z9Gy6tiS5XTMjn6rSSrLi1SR1AkZ2zcpJr0G',
+        },
+        body: jsonEncode(message),
+      );
+    } catch (e) {
+      print('Error sending FCM notification: $e');
+    }
+    ;
   }
 
   // display a dialog to add a comment
@@ -154,11 +210,25 @@ class _PostState extends State<Post> {
 
               TextButton(
                   onPressed: () {
+                    // show circular progress indicator
+                    showDialog(
+                        context: context,
+                        builder: (context) {
+                          return Center(
+                              child: CircularProgressIndicator(
+                            color: Colors.white,
+                          ));
+                        });
                     // add the comment
 
                     addComment(
                       (commentTextController.text),
                     );
+
+                    // pop the dialog
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                    }
 
                     // pop and clear controller
 
@@ -565,10 +635,14 @@ class _PostState extends State<Post> {
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: snapshot.data!.docs.length,
                     itemBuilder: (context, index) {
+                      // if comments are less and equal to 2
+
                       final commentData = snapshot.data!.docs[index];
-                      // final commentscount = snapshot.data!.docs.length;
+
                       return Comment(
                         comment: commentData['Comment'],
+                        commentId: commentData.id,
+                        postId: widget.postId,
                         user: commentData['By'],
                         userEmail: commentData['UserEmail'],
                         time: FormatedTime(

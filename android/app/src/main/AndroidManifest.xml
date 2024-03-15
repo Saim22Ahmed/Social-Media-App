@@ -5,7 +5,7 @@
         android:requestLegacyExternalStorage="true"
         android:label="pulse"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/launcher_icon">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -35,6 +35,9 @@
         <meta-data
            android:name="com.google.firebase.messaging.default_notification_channel_id"
            android:value="high_importance_channel" />
+        <meta-data
+            android:name="com.google.firebase.messaging.pulse_notification_icon.png"
+            android:resource="@drawable/pulse_notification_icon" />
     </application>
     
 

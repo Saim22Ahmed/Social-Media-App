@@ -286,7 +286,7 @@ class _HomePageState extends State<HomePage> {
         'priority': 'high',
         'notification': {
           'title': '${_username} added a new Post ! ',
-          'body': 'Check out what\'s he is upto :)',
+          'body': 'Check out what he is upto :)',
         },
         'data': {
           'click_action': 'FLUTTER_NOTIFICATION_CLICK',

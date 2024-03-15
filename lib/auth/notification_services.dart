@@ -39,7 +39,7 @@ class NotificationServices {
       BuildContext context, RemoteMessage message) async {
     // for the icon on the notification bar on android
     var androidInitializationSettings =
-        const AndroidInitializationSettings('@mipmap/ic_launcher');
+        const AndroidInitializationSettings('@mipmap/pulse_notification_icon');
 
     // for the icon on the notification bar on ios
     var iosInitializationSettings = const DarwinInitializationSettings();
@@ -69,8 +69,9 @@ class NotificationServices {
 
   Future<void> showNotifications(RemoteMessage message) async {
     AndroidNotificationChannel channel = AndroidNotificationChannel(
-      Random.secure().nextInt(10000000).toString(),
-      'Important Notifications',
+      'high_importance_channel',
+      'High Importance Notifications',
+      description: 'This channel is used for important notifications.',
       importance: Importance.max,
     );
 
