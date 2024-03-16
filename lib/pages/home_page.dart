@@ -9,6 +9,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -47,10 +48,13 @@ class _HomePageState extends State<HomePage> {
   // scroll controller
   ScrollController scrollController = ScrollController();
 
+  // Scroll Controller
+
   // pickedfile
   PlatformFile? pickedfile;
   bool permissionGranted = false;
   bool isLoading = false;
+  bool showPostMessageField = false;
 
   String? ImageURL = ''; // image url from firebase storage
 
@@ -267,6 +271,8 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  // show post message field when user scroll up
+
   Future<void> sendFCMNotificationToTopic() async {
     try {
       var currentDeviceToken = await notificationServices.getDeviceToken();
@@ -389,6 +395,7 @@ class _HomePageState extends State<HomePage> {
           ),
 
           // post message field
+
           Padding(
             padding: const EdgeInsets.all(20.0),
             child: Row(
@@ -462,18 +469,18 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
           // current user name
-          Padding(
-            padding: EdgeInsets.only(bottom: 15.h),
-            child: Container(
-              padding: EdgeInsets.all(10.sp),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8.r),
-                color: Theme.of(context).colorScheme.tertiary,
-              ),
-              child: Text('Logged in as ' + _username,
-                  style: TextStyle(color: Colors.white)),
-            ),
-          ),
+          // Padding(
+          //   padding: EdgeInsets.only(bottom: 15.h),
+          //   child: Container(
+          //     padding: EdgeInsets.all(10.sp),
+          //     decoration: BoxDecoration(
+          //       borderRadius: BorderRadius.circular(8.r),
+          //       color: Theme.of(context).colorScheme.tertiary,
+          //     ),
+          //     child: Text('Logged in as ' + _username,
+          //         style: TextStyle(color: Colors.white)),
+          //   ),
+          // ),
         ]),
       ),
     );

@@ -11,6 +11,9 @@ import 'package:word_wall/components/myTextFormFields.dart';
 import 'package:word_wall/components/mybutton.dart';
 import 'package:word_wall/constants.dart';
 import 'package:word_wall/controllers/login_or_register_controller.dart';
+import 'package:word_wall/pages/Forgot_pass_page.dart';
+import 'package:word_wall/pages/home_page.dart';
+import 'package:word_wall/utils/utils.dart';
 
 class LoginPage extends StatefulWidget {
   final Function()? onTap;
@@ -28,6 +31,8 @@ class _LoginPageState extends State<LoginPage> {
 
   final password_controller = TextEditingController();
 
+  final currentUser = FirebaseAuth.instance.currentUser;
+
   void signIn(context) async {
     showDialog(
         context: context,
@@ -41,7 +46,6 @@ class _LoginPageState extends State<LoginPage> {
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
           email: email_controller.text, password: password_controller.text);
-
       Navigator.pop(context);
     } on FirebaseAuthException catch (e) {
       Navigator.pop(context);
@@ -76,10 +80,13 @@ class _LoginPageState extends State<LoginPage> {
                       size: 100,
                       color: Color(0xff00B4D8),
                     ),
-                    25.h.verticalSpace,
+                    30.h.verticalSpace,
                     // welcome Text
                     Text(
-                      "Welcome back you've been missed",
+                      "Welcome back !",
+                      style: TextStyle(
+                          fontFamily: GoogleFonts.righteous().fontFamily,
+                          fontSize: 35.sp),
                     ),
 
                     SizedBox(
@@ -113,23 +120,31 @@ class _LoginPageState extends State<LoginPage> {
 
                     25.h.verticalSpace,
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Dont have an account ? ',
-                          style: TextStyle(color: Colors.grey[700]),
+                        GestureDetector(
+                          onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => ForgotPasswordPage())),
+                          child: Text(
+                            'Forgot Password?',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                         GestureDetector(
                           onTap: widget.onTap,
                           child: Text(
-                            'Register now ',
+                            'Sign up ! ',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
                       ],
-                    )
+                    ),
                   ]),
             ),
           ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:word_wall/constants.dart';
 
 class MyTextFormField extends StatelessWidget {
   MyTextFormField({
@@ -71,7 +72,7 @@ class MyTextFormField extends StatelessWidget {
           ),
           focusedBorder: OutlineInputBorder(
             borderSide: BorderSide(
-              color: Colors.blue,
+              color: themecolor,
               width: 1.w,
             ),
             borderRadius: BorderRadius.circular(4.r),

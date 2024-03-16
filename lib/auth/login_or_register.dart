@@ -13,8 +13,6 @@ class LoginOrRegisterPage extends StatefulWidget {
 }
 
 class _LoginOrRegisterPageState extends State<LoginOrRegisterPage> {
-// provider
-
   final loginOrRegisterController = Get.put(LoginOrRegisterController());
 
   @override

@@ -7,6 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -51,6 +52,9 @@ class _PostState extends State<Post> {
   final currentUser = FirebaseAuth.instance.currentUser!;
 
   bool isLiked = false;
+  bool showAllComments = false;
+  bool showReadMoreButton = false;
+  int commentCount = 0;
 
   // commenttextController
   final commentTextController = TextEditingController();
@@ -462,6 +466,9 @@ class _PostState extends State<Post> {
         .doc(widget.postId)
         .collection('Comments')
         .get();
+    setState(() {
+      commentCount = querySnapshot.docs.length;
+    });
 
     return querySnapshot.docs.length;
   }
@@ -494,7 +501,7 @@ class _PostState extends State<Post> {
                     style: TextStyle(
                       // color: Color(0xff00B4D8),
 
-                      color: Theme.of(context).colorScheme.inversePrimary,
+                      color: Theme.of(context).colorScheme.onInverseSurface,
                       // fontWeight: FontWeight.bold,
                       fontFamily: GoogleFonts.righteous().fontFamily,
                       fontSize: 20.sp,
@@ -524,7 +531,9 @@ class _PostState extends State<Post> {
                 20.h.horizontalSpace,
                 // delelte button
                 if (widget.userEmail == currentUser.email)
-                  DeleteButton(onTap: deletePost),
+                  DeleteButton(
+                      onTap: deletePost,
+                      color: Theme.of(context).colorScheme.onTertiary),
               ],
             )
           ],
@@ -633,10 +642,12 @@ class _PostState extends State<Post> {
                 return ListView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    itemCount: snapshot.data!.docs.length,
+                    itemCount: showAllComments
+                        ? snapshot.data!.docs.length
+                        : snapshot.data!.docs.length > 2
+                            ? 2
+                            : snapshot.data!.docs.length,
                     itemBuilder: (context, index) {
-                      // if comments are less and equal to 2
-
                       final commentData = snapshot.data!.docs[index];
 
                       return Comment(
@@ -678,7 +689,37 @@ class _PostState extends State<Post> {
                       color: Theme.of(context).shadowColor,
                     ),
               );
-            })
+            }),
+
+        20.h.verticalSpace,
+
+        // Read more button for comments
+        if (commentCount > 2)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  padding:
+                      EdgeInsets.symmetric(vertical: 10.h, horizontal: 20.w),
+                  backgroundColor: Theme.of(context).colorScheme.secondary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18.r),
+                  ),
+                ),
+                onPressed: () {
+                  setState(() {
+                    showAllComments = !showAllComments;
+                  });
+                },
+                child: Text(
+                  showAllComments ? 'Show Less' : 'Read More',
+                  style: TextStyle(
+                      color: Theme.of(context).colorScheme.onTertiary),
+                ),
+              ),
+            ],
+          ),
       ]),
     );
   }

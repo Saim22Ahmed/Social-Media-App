@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -10,6 +11,9 @@ import 'package:word_wall/auth/notification_services.dart';
 import 'package:word_wall/components/myTextFormFields.dart';
 import 'package:word_wall/components/mybutton.dart';
 import 'package:word_wall/constants.dart';
+import 'package:word_wall/pages/home_page.dart';
+import 'package:word_wall/pages/login_page.dart';
+import 'package:word_wall/utils/utils.dart';
 
 class RegisterPage extends StatefulWidget {
   final Function()? onTap;
@@ -83,7 +87,9 @@ class _RegisterPageState extends State<RegisterPage> {
       UserCredential userCredential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(
               email: email_controller.text, password: password_controller.text);
-      Navigator.pop(context);
+
+      // Send verification email
+      Navigator.of(context).pop();
 
       // after user created , create a new document for the user in firestore
 
@@ -110,11 +116,11 @@ class _RegisterPageState extends State<RegisterPage> {
     }
   }
 
-  void displayMessage(String message, context) {
+  void displayMessage(String message, context, {color = Colors.red}) {
     FocusManager.instance.primaryFocus?.unfocus();
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       duration: Duration(seconds: 1),
-      backgroundColor: Colors.red[600],
+      backgroundColor: color,
       dismissDirection: DismissDirection.horizontal,
       behavior: SnackBarBehavior.floating,
       margin: EdgeInsets.symmetric(horizontal: 15.w, vertical: 15.h),
@@ -129,89 +135,98 @@ class _RegisterPageState extends State<RegisterPage> {
   Widget build(BuildContext context) {
     return Scaffold(
         backgroundColor: Theme.of(context).colorScheme.background,
-        body: Center(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 25.0),
-            child:
-                Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              // Icon
-              Icon(
-                Icons.lock,
-                size: 100,
-                color: Color(0xff00B4D8),
-              ),
-              25.h.verticalSpace,
-              // welcome Text
-              Text(
-                "Let's Create an Account",
-                // style: TextStyle(color: Colors.grey[700]),
-              ),
-
-              SizedBox(
-                height: 25.h,
-              ),
-
-              // Username Field
-              16.h.verticalSpace,
-              MyTextFormField(
-                controller: username_controller,
-                hintText: 'Username',
-                obscuretext: false,
-              ),
-              // Email Field
-              16.h.verticalSpace,
-
-              MyTextFormField(
-                keyboardType: TextInputType.emailAddress,
-                controller: email_controller,
-                hintText: 'Email',
-                obscuretext: false,
-              ),
-              16.h.verticalSpace,
-              // Password Field
-              MyTextFormField(
-                controller: password_controller,
-                hintText: 'Password',
-                obscuretext: false,
-              ),
-
-              // Confirm Password Field
-              16.h.verticalSpace,
-              MyTextFormField(
-                controller: confirm_password_controller,
-                hintText: 'Confirm Password',
-                obscuretext: false,
-              ),
-
-              16.h.verticalSpace,
-
-              // button
-              MyButton(
-                onTap: () {
-                  signUp(context);
-                },
-                title: 'Sign up',
-              ),
-              25.h.verticalSpace,
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'Already have an account ? ',
-                    style: TextStyle(color: Colors.grey[700]),
-                  ),
-                  GestureDetector(
-                    onTap: widget.onTap,
-                    child: Text(
-                      'Login now ',
+        body: SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          physics: BouncingScrollPhysics(),
+          child: Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 25.0, vertical: 25.h),
+              child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    150.h.verticalSpace,
+                    // Icon
+                    // Icon(
+                    //   Icons.lock,
+                    //   size: 100,
+                    //   color: Color(0xff00B4D8),
+                    // ),
+                    25.h.verticalSpace,
+                    // welcome Text
+                    Text(
+                      "Let's Create an account !",
                       style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                      ),
+                          fontFamily: GoogleFonts.righteous().fontFamily,
+                          fontSize: 35.sp),
+                      // style: TextStyle(color: Colors.grey[700]),
                     ),
-                  ),
-                ],
-              )
-            ]),
+
+                    SizedBox(
+                      height: 25.h,
+                    ),
+
+                    // Username Field
+                    16.h.verticalSpace,
+                    MyTextFormField(
+                      controller: username_controller,
+                      hintText: 'Username',
+                      obscuretext: false,
+                    ),
+                    // Email Field
+                    16.h.verticalSpace,
+
+                    MyTextFormField(
+                      keyboardType: TextInputType.emailAddress,
+                      controller: email_controller,
+                      hintText: 'Email',
+                      obscuretext: false,
+                    ),
+                    16.h.verticalSpace,
+                    // Password Field
+                    MyTextFormField(
+                      controller: password_controller,
+                      hintText: 'Password',
+                      obscuretext: false,
+                    ),
+
+                    // Confirm Password Field
+                    16.h.verticalSpace,
+                    MyTextFormField(
+                      controller: confirm_password_controller,
+                      hintText: 'Confirm Password',
+                      obscuretext: false,
+                    ),
+
+                    16.h.verticalSpace,
+
+                    // button
+                    MyButton(
+                      onTap: () {
+                        signUp(context);
+                      },
+                      title: 'Sign up',
+                    ),
+                    25.h.verticalSpace,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Already have an account ? ',
+                          style: TextStyle(color: Colors.grey[700]),
+                        ),
+                        GestureDetector(
+                          onTap: widget.onTap,
+                          child: Text(
+                            'Login now ',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  ]),
+            ),
           ),
         ));
   }

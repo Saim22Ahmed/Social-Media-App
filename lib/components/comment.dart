@@ -7,6 +7,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:word_wall/components/delete_button.dart';
+import 'package:word_wall/constants.dart';
 
 class Comment extends StatefulWidget {
   Comment(
@@ -135,14 +136,17 @@ class _CommentState extends State<Comment> {
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           Text(widget.user,
               style: TextStyle(
-                color: Theme.of(context).colorScheme.onSecondary,
+                color: Theme.of(context).colorScheme.inversePrimary,
                 fontWeight: FontWeight.bold,
                 fontSize: 17.sp,
               )),
 
           // Delete Button
           if (widget.userEmail == currentUser!.email)
-            DeleteButton(onTap: deleteComment),
+            DeleteButton(
+              onTap: deleteComment,
+              color: Theme.of(context).colorScheme.inversePrimary,
+            ),
         ]),
         5.h.verticalSpace,
         // comment
@@ -150,6 +154,8 @@ class _CommentState extends State<Comment> {
         Text(
           widget.comment,
         ),
+
+        5.h.verticalSpace,
 
         // Date and Time
 
