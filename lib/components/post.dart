@@ -148,8 +148,8 @@ class _PostState extends State<Post> {
         'to': postOwnerToken,
         'priority': 'high',
         'notification': {
-          'title': '$username commented on your post',
-          'body': '$username: $comment',
+          'title': 'Pulse',
+          'body': '$username commented on your post : $comment',
         },
         'data': {
           'click_action': 'FLUTTER_NOTIFICATION_CLICK',
@@ -590,7 +590,7 @@ class _PostState extends State<Post> {
 
             Column(
               children: [
-                LikeButton(
+                CustomLikeButton(
                   isLiked: isLiked,
                   onTap: toggleLike,
                 ),

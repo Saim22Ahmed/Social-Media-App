@@ -55,6 +55,7 @@ dependencies:
   firebase_messaging: ^14.7.20
   flutter_local_notifications: ^17.0.0
   http: ^1.2.1
+  like_button: ^2.0.5
   
 
 dev_dependencies:

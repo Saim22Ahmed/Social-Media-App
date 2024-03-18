@@ -38,8 +38,8 @@ class NotificationServices {
   void initLocalNotifications(
       BuildContext context, RemoteMessage message) async {
     // for the icon on the notification bar on android
-    var androidInitializationSettings =
-        const AndroidInitializationSettings('@mipmap/pulse_notification_icon');
+    var androidInitializationSettings = const AndroidInitializationSettings(
+        '@drawable/pulse_notification_icon');
 
     // for the icon on the notification bar on ios
     var iosInitializationSettings = const DarwinInitializationSettings();
