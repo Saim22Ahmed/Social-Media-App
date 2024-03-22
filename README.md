@@ -1,5 +1,5 @@
 
-# Pulse
+# pulse
 
 Pulse is a social media app built with Flutter and Firebase. It allows users to post, edit, and delete their content, and engage with others by commenting on their posts.
 
@@ -12,6 +12,12 @@ Pulse is a social media app built with Flutter and Firebase. It allows users to 
 - **Firebase Authentication**: Pulse uses Firebase Authentication to ensure a secure and seamless sign-in experience.
 - **Firebase Cloud Storage**: All images shared on Pulse are securely stored using Firebase Cloud Storage.
 - **Firebase Cloud Messaging**: Stay connected and updated with Firebase Cloud Messaging, delivering notifications and messages in real time.
+
+## Demo
+
+
+https://github.com/Saim22Ahmed/Social-Media-App/assets/80286799/4956d9b6-1e4c-4363-bc09-24b055e6198a
+
 
 ## Getting Started
 
