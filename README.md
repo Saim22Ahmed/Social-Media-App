@@ -1,4 +1,4 @@
-# word_wall
+# pulse
 
 A new Flutter project.
 
